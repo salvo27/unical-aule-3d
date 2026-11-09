@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aule Unical</title>
+  <meta name="description" content="Mappa 3D del campus Unical con le aule libere e occupate, dagli orari pubblicati.">
+  <link rel="stylesheet" href="/vendor/maplibre-gl.css">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/vendor/supabase.js"></script>
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <div id="map" role="region" aria-label="Mappa 3D del campus"></div>
+
+  <aside class="panel" id="panel">
+    <header class="panel-head">
+      <div class="head-row">
+        <h1 class="brand">Aule Unical</h1>
+        <button type="button" id="account" class="link-btn account-btn" hidden>Accedi</button>
+      </div>
+      <form class="search" id="search-form" role="search">
+        <input id="q" type="search" maxlength="60" autocomplete="off" spellcheck="false"
+               placeholder="Aula, cubo, corso, docente o mensa" aria-label="Cerca">
+      </form>
+      <div class="filters" role="group" aria-label="Filtri">
+        <button type="button" id="f-free" class="chip" aria-pressed="false">Libere adesso</button>
+        <label class="chip chip-field">Per almeno
+          <select id="f-hours">
+            <option value="">-</option>
+            <option value="1">1 ora</option>
+            <option value="2">2 ore</option>
+            <option value="3">3 ore</option>
+            <option value="4">4 ore</option>
+          </select>
+        </label>
+        <label class="chip chip-field">Posti
+          <input id="f-seats" type="number" min="1" max="2000" step="1" inputmode="numeric" placeholder="min">
+        </label>
+      </div>
+    </header>
+    <div class="panel-body" id="panel-body" aria-live="polite"></div>
+    <footer class="panel-foot" id="panel-foot"></footer>
+  </aside>
+
+  <div class="legend" aria-label="Legenda">
+    <span><i class="sw sw-free"></i>Libera</span>
+    <span><i class="sw sw-busy"></i>Occupata</span>
+    <span><i class="sw sw-unknown"></i>Dato non aggiornato</span>
+    <span><i class="sw sw-none"></i>Nessuna aula nei calendari</span>
+    <span><i class="sw sw-food"></i>Mensa / ristoro</span>
+    <span><i class="sw sw-library"></i>Biblioteca / aula studio</span>
+    <span><i class="sw sw-culture"></i>Cinema e teatro</span>
+  </div>
+</body>
+</html>
