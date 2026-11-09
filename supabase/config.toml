@@ -145,7 +145,7 @@ max_catalogs = 2
 
 # Store vector embeddings in S3 for large and durable datasets
 [storage.vector]
-enabled = true
+enabled = false
 max_buckets = 10
 max_indexes = 5
 
@@ -285,10 +285,11 @@ uri = "pg-functions://postgres/public/hook_before_user_created"
 enabled = true
 uri = "pg-functions://postgres/public/custom_access_token_hook"
 
-# No passwords in this project: every password check is refused.
-[auth.hook.password_verification_attempt]
-enabled = true
-uri = "pg-functions://postgres/public/hook_password_verification_attempt"
+# Not available on the free plan. Passwords stay unusable anyway: custom_access_token_hook
+# refuses every token from a password session (see supabase/tests/database/01_roles.test.sql).
+# [auth.hook.password_verification_attempt]
+# enabled = true
+# uri = "pg-functions://postgres/public/hook_password_verification_attempt"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]
