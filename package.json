@@ -1,0 +1,28 @@
+{
+  "name": "unical-aule-3d",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Simplified 3D map of the Unical campus showing which rooms are free, from the published University Planner timetables",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.10"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node dist/scripts/notices.js",
+    "start": "node dist/src/main.js",
+    "dev": "npm run build && node --env-file=.env dist/src/main.js",
+    "test": "npm run build && node --test dist/test/",
+    "sync": "npm run build && node --env-file=.env dist/src/cli/sync.js",
+    "import-campus": "npm run build && node dist/scripts/import-campus.js",
+    "discover": "npm run build && node --env-file=.env dist/src/cli/discover.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.109.0",
+    "maplibre-gl": "^6.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.9.3"
+  }
+}
