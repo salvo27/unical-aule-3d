@@ -1,0 +1,36 @@
+{
+  "checkedAt": "9 novembre 2026",
+  "source": "https://www.unical.it/campus/vivere-il-campus/servizio-mensa/",
+  "places": {
+    "mensa-martenson": {
+      "hours": [
+        { "days": "Pranzo, lunedì-sabato", "time": "12:00-15:00" },
+        { "days": "Cena, lunedì-venerdì", "time": "19:00-21:30" }
+      ],
+      "note": "Domenica chiusa. Con l'ora legale la cena è 19:30-21:30. L'ultimo fine settimana del mese è aperta anche sabato e domenica, al posto della Maisonnettes."
+    },
+    "mensa-maisonnettes": {
+      "hours": [
+        { "days": "Pranzo, tutti i giorni", "time": "12:00-15:00" },
+        { "days": "Cena, tutti i giorni", "time": "19:00-21:30" }
+      ],
+      "note": "Con l'ora legale la cena è 19:30-21:30. Chiusa l'ultimo fine settimana del mese, quando apre la Martensson."
+    },
+    "mensa-maisonnettes-senior": {
+      "hours": [
+        { "days": "Pranzo, lunedì-sabato", "time": "12:00-15:00" },
+        { "days": "Cena, lunedì-venerdì", "time": "19:00-21:30" }
+      ],
+      "note": "Stessi orari della mensa Martensson. Domenica chiusa, con l'ora legale la cena è 19:30-21:30.",
+      "official": false
+    },
+    "mensa-vermicelli": {
+      "hours": [{ "days": "Pranzo, lunedì-venerdì", "time": "12:00-15:00" }],
+      "note": "Solo pranzo."
+    },
+    "poli-bistrot": {
+      "hours": [{ "days": "Lunedì-sabato", "time": "fino alle 15:00" }],
+      "note": "Domenica chiuso. L'orario di apertura non è indicato nella pagina ufficiale."
+    }
+  }
+}

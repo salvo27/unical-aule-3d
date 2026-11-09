@@ -1,0 +1,153 @@
+{
+  "places": {
+    "auditorium-teatro-grande": {
+      "note": "Teatro da 550 posti. Al piano di sotto ci sono le due sale del Cinema Unical: 8 euro intero, 5 ridotto, 4 o 5 per studenti e personale Unical.",
+      "links": [
+        {
+          "label": "Stagione teatrale 2026/27",
+          "url": "https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/stagione-teatrale-2026-27/"
+        },
+        {
+          "label": "Programma del cinema",
+          "url": "https://cosenzacinema.it/programmazione-sale-unical/"
+        },
+        {
+          "label": "Biglietti del cinema",
+          "url": "https://unical.cosenzacinema.18tickets.it"
+        },
+        {
+          "label": "Sconti per studenti",
+          "url": "https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/scontisticastudenti/"
+        }
+      ],
+      "source": "https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/",
+      "checkedAt": "9 novembre 2026"
+    },
+    "teatro-piccolo": {
+      "note": "Teatro da 300 posti in contrada Molicelle, vicino al Centro Congressi.",
+      "links": [
+        {
+          "label": "Prossimi spettacoli",
+          "url": "https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/ptu/"
+        }
+      ],
+      "source": "https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/ptu/",
+      "checkedAt": "9 novembre 2026"
+    },
+    "anfiteatro-polifunzionale": {
+      "note": "Anfiteatro all'aperto da circa 500 posti. Non ha un programma suo: gli eventi sono nella sezione Teatri e Cinema.",
+      "links": [
+        {
+          "label": "Teatri e Cinema Unical",
+          "url": "https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/"
+        }
+      ],
+      "source": "https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/anfiteatri-unical/",
+      "checkedAt": "9 novembre 2026"
+    },
+    "bau": {
+      "hours": [
+        {
+          "days": "Lunedì-giovedì",
+          "time": "9:00-20:05"
+        },
+        {
+          "days": "Venerdì",
+          "time": "9:00-17:00"
+        },
+        {
+          "days": "Sabato e domenica",
+          "time": "9:00-17:00"
+        }
+      ],
+      "note": "Nel fine settimana apre solo la BAU, anche per i servizi di BATS e Tarantelli, con ingresso dal ponte. Consultazione libera nei limiti dei posti; per il prestito serve la tessera.",
+      "links": [
+        {
+          "label": "Orari e variazioni",
+          "url": "https://bau.unical.it/informazioni-generali/accesso-e-orari"
+        },
+        {
+          "label": "Sistema bibliotecario",
+          "url": "https://sba.unical.it/"
+        }
+      ],
+      "source": "https://sba.unical.it/",
+      "checkedAt": "9 novembre 2026"
+    },
+    "bats": {
+      "hours": [
+        {
+          "days": "Lunedì-giovedì",
+          "time": "9:00-20:05"
+        },
+        {
+          "days": "Venerdì",
+          "time": "9:00-17:00"
+        },
+        {
+          "days": "Sabato e domenica",
+          "time": "chiusa, aperta la BAU"
+        }
+      ],
+      "note": "Due sale lettura con 200 posti ad accesso libero. La sala multimediale per studio individuale o di gruppo si prenota su UniTicket.",
+      "links": [
+        {
+          "label": "Prenota la sala multimediale",
+          "url": "https://ticket.unical.it/tickets/new/15/570/"
+        },
+        {
+          "label": "Biblioteche Unical",
+          "url": "https://www.unical.it/campus/vivere-il-campus/biblioteche/"
+        }
+      ],
+      "source": "https://www.unical.it/campus/vivere-il-campus/biblioteche/",
+      "checkedAt": "9 novembre 2026"
+    },
+    "tarantelli": {
+      "hours": [
+        {
+          "days": "Lunedì-giovedì",
+          "time": "9:00-20:05"
+        },
+        {
+          "days": "Venerdì",
+          "time": "9:00-17:00"
+        },
+        {
+          "days": "Sabato e domenica",
+          "time": "chiusa, aperta la BAU"
+        }
+      ],
+      "note": "Dal 9 novembre si possono prenotare su UniTicket due tavoli studio del Fondo Tocci, al primo piano. Il prestito interbibliotecario è sospeso.",
+      "links": [
+        {
+          "label": "Orari",
+          "url": "https://tar.unical.it/tar_orario"
+        },
+        {
+          "label": "Prenotare i tavoli",
+          "url": "https://www.unical.it/campus/vivere-il-campus/biblioteche/contents/news/view/26055-prenotazione-attivita-collaborative-e-individuali-biblioteca-e-tarantelli/"
+        }
+      ],
+      "source": "https://tar.unical.it/tar_orario",
+      "checkedAt": "9 novembre 2026"
+    },
+    "cubo-24b": {
+      "hours": [
+        {
+          "days": "Tutti i giorni",
+          "time": "17:00-24:00"
+        }
+      ],
+      "note": "Aula studio C24, circa 150 posti su due piani, aperta dalla chiusura delle sale studio delle biblioteche fino a mezzanotte. Si entra con le credenziali di Ateneo su aulestudio.unical.it, che dà un QR code temporaneo per il tornello. Orario annunciato all'apertura (settembre 2025): un giornale locale riportava 10:00-20:00 nel fine settimana.",
+      "links": [
+        {
+          "label": "Annuncio ufficiale",
+          "url": "https://www.unical.it/contents/news/view/19549-un-campus-sempre-piu-vivo-inaugurata-la-nuova-aula-studio-aperta-fino-alle-24-e-nei-weekend/"
+        }
+      ],
+      "source": "https://www.unical.it/contents/news/view/19549-un-campus-sempre-piu-vivo-inaugurata-la-nuova-aula-studio-aperta-fino-alle-24-e-nei-weekend/",
+      "checkedAt": "9 novembre 2026"
+    }
+  }
+}
