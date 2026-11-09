@@ -159,8 +159,9 @@ html, body { height: 100%; margin: 0; background: var(--surface-alt); }
 .pill-busy { background: #fbe4e3; color: #8f2724; }
 .pill-unknown { background: #eceef0; color: #4c5157; }
 
+.detail-nav { display: flex; align-items: center; margin: 4px 8px 0 10px; }
+
 .back {
-  margin: 4px 10px 0;
   padding: 6px 8px;
   border: 0;
   background: none;
@@ -169,6 +170,24 @@ html, body { height: 100%; margin: 0; background: var(--surface-alt); }
   color: var(--brand);
   cursor: pointer;
 }
+
+.close {
+  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-alt);
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.close:hover { background: var(--line); }
+
+.panel-toggle { display: none; }
 
 .detail-head { padding: 6px 16px 4px; }
 .detail-head h2 { margin: 0; font-size: 20px; }
@@ -243,6 +262,10 @@ html, body { height: 100%; margin: 0; background: var(--surface-alt); }
     max-height: 58vh;
     border-radius: var(--radius) var(--radius) 0 0;
   }
+  .panel-toggle { display: block; width: 100%; height: 24px; padding: 0; border: 0; background: none; cursor: pointer; }
+  .panel-toggle span { display: block; width: 40px; height: 4px; margin: 0 auto; border-radius: 2px; background: #c9c3b8; }
+  .panel-head { padding-top: 4px; }
+  .panel.collapsed .panel-body, .panel.collapsed .panel-foot { display: none; }
   .legend { top: 12px; right: 12px; bottom: auto; flex-direction: row; flex-wrap: wrap; max-width: calc(100% - 24px); }
   .legend span:nth-child(n+4) { display: none; }
 }

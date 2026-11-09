@@ -45,6 +45,8 @@ const CATEGORY_TEXT = {
 };
 
 const $ = (id) => document.getElementById(id);
+const panel = $('panel');
+const panelToggle = $('panel-toggle');
 const panelBody = $('panel-body');
 const panelFoot = $('panel-foot');
 
@@ -445,6 +447,7 @@ function show(view) {
   state.history.push(state.view);
   if (state.history.length > 30) state.history.shift();
   state.view = view;
+  setCollapsed(false);
   render();
   panelBody.scrollTop = 0;
 }
@@ -453,6 +456,22 @@ function back() {
   state.view = state.history.pop() || { name: 'home' };
   select(state.view.key || null);
   render();
+}
+
+function closeDetail() {
+  state.history = [];
+  state.view = { name: 'home' };
+  select(null);
+  render();
+  panelBody.scrollTop = 0;
+  // On a phone the map is the point: closing a detail also lowers the sheet.
+  if (window.innerWidth <= 720) setCollapsed(true);
+}
+
+function setCollapsed(collapsed) {
+  panel.classList.toggle('collapsed', collapsed);
+  panelToggle.setAttribute('aria-expanded', String(!collapsed));
+  panelToggle.setAttribute('aria-label', collapsed ? 'Apri il pannello' : 'Riduci il pannello');
 }
 
 function openBuilding(key) {
@@ -556,9 +575,13 @@ function placeRow(place) {
   );
 }
 
-function backButton() {
-  if (state.history.length === 0) return document.createDocumentFragment();
-  return el('button', { className: 'back', type: 'button', on: { click: back } }, '‹ Indietro');
+function detailNav() {
+  return el(
+    'div',
+    { className: 'detail-nav' },
+    state.history.length > 0 ? el('button', { className: 'back', type: 'button', on: { click: back } }, '‹ Indietro') : null,
+    el('button', { className: 'close', type: 'button', 'aria-label': 'Chiudi', on: { click: closeDetail } }, '×'),
+  );
 }
 
 function renderHome() {
@@ -622,7 +645,7 @@ function renderBuilding(v) {
   const place = state.places.get(v.key);
   const rooms = (state.status?.rooms || []).filter((r) => r.buildingKey === v.key);
   const category = place && place.category ? CATEGORY_TEXT[place.category] : null;
-  panelBody.append(backButton());
+  panelBody.append(detailNav());
   panelBody.append(
     el(
       'div',
@@ -731,7 +754,7 @@ function lessonItem(l, now, onNotHeld, view) {
 
 function renderRoom(v) {
   const room = state.status?.rooms.find((r) => r.id === v.id) || v.data?.room;
-  panelBody.append(backButton());
+  panelBody.append(detailNav());
   if (!room) {
     panelBody.append(v.error ? el('div', { className: 'notice error' }, 'Aula non trovata negli orari caricati.') : el('p', { className: 'muted' }, 'Caricamento…'));
     return;
@@ -899,7 +922,7 @@ const LOGIN_ERRORS = {
 };
 
 function renderLogin(v) {
-  panelBody.append(backButton());
+  panelBody.append(detailNav());
   panelBody.append(el('div', { className: 'detail-head' }, el('h2', {}, 'Accedi'), el('p', {}, 'Ti mandiamo un link alla mail Unical: niente password.')));
   if (v.sent) {
     panelBody.append(el('div', { className: 'notice ok' }, 'Controlla la mail e apri il link da questo browser.'));
@@ -949,7 +972,7 @@ async function openMine() {
 }
 
 function renderMine(v) {
-  panelBody.append(backButton());
+  panelBody.append(detailNav());
   const admin = state.role === 'moderator' || state.role === 'admin' ? el('a', { className: 'chip', href: '/admin' }, 'Area admin') : null;
   panelBody.append(
     el('div', { className: 'detail-head' }, el('h2', {}, 'Le mie segnalazioni')),
@@ -1057,7 +1080,7 @@ function renderPlaceInfo(key, fallback) {
 
 function renderFood(v) {
   const place = state.places.get(v.key);
-  panelBody.append(backButton());
+  panelBody.append(detailNav());
   panelBody.append(el('div', { className: 'detail-head' }, el('h2', {}, place ? place.name : 'Mensa'), el('p', {}, 'Mensa e ristoro')));
   if (place?.note) panelBody.append(el('p', { className: 'muted' }, place.note));
   const info = state.canteens?.places?.[v.key];
@@ -1120,6 +1143,7 @@ async function runSearch(reset = true) {
   const view = { name: 'search', results: state.view.name === 'search' && !reset ? state.view.results : null, error: null, places: q ? matchPlaces(q) : [] };
   state.view = view;
   state.history = [];
+  setCollapsed(false);
   render();
   try {
     view.results = await api(`/api/search?${params}`);
@@ -1177,6 +1201,11 @@ function renderSearch(v) {
 }
 
 function bindControls() {
+  panelToggle.addEventListener('click', () => setCollapsed(!panel.classList.contains('collapsed')));
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName || '')) return;
+    if (['building', 'room', 'food', 'login', 'mine'].includes(state.view.name)) closeDetail();
+  });
   const input = $('q');
   input.addEventListener(
     'input',
