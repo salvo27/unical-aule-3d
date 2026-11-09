@@ -1,0 +1,743 @@
+{
+  "calendars": [
+    {
+      "id": "6878ced55f90680019ea5e26",
+      "label": "DSPES · Calendario delle lezioni 2026 Scienze dell'Amministrazione (0755-0886) 1S"
+    },
+    {
+      "id": "6878dc7e2d13e6001edccaa4",
+      "label": "DSPES · Calendario delle lezioni 2026 Media e Società Digitale (0800-0890) 1S"
+    },
+    {
+      "id": "6878c95c4c1e05001fd31126",
+      "label": "DSPES · Calendario delle lezioni 2026 Scienze Politiche e Relazioni Internazionali (0831-0893) 1S"
+    },
+    {
+      "id": "6878d140e11d67001e6f1ad8",
+      "label": "DSPES · Calendario delle lezioni 2026 Servizio Sociale (0777-0889) 1S"
+    },
+    {
+      "id": "6878e101e11d67001e6f2477",
+      "label": "DSPES · Calendario delle lezioni 2026 Scritture, Immagini, Media Digitali (0834) 1S"
+    },
+    {
+      "id": "6878df7a182d4e001eac12e5",
+      "label": "DSPES · Calendario delle lezioni 2026 Scienze della Politica e Istituzioni Internazionali (0892) 1S"
+    },
+    {
+      "id": "6878dd875f90680019ea65b2",
+      "label": "DSPES · Calendario delle lezioni 2026 Scienze delle Pubbliche Amministrazioni (0887) 1S"
+    },
+    {
+      "id": "6878e07b182d4e001eac12f0",
+      "label": "DSPES · Calendario delle lezioni 2026 Cooperazione, sviluppo, ecologia (0891) 1S"
+    },
+    {
+      "id": "6878de9d2d13e6001edccabc",
+      "label": "DSPES · Calendario delle lezioni 2026 Scienze delle Politiche e dei Servizi Sociali (0888) 1S"
+    },
+    {
+      "id": "6878f6e84c1e05001fd31ee4",
+      "label": "DSPES · Calendario delle lezioni 2026 Scienze dell'Amministrazione (0755-0886) 2S"
+    },
+    {
+      "id": "6878fa362d13e6001edcd732",
+      "label": "DSPES · Calendario delle lezioni 2026 Media e Società Digitale (0800-0890) 2S"
+    },
+    {
+      "id": "6878f5c249f08d0019e7eb4a",
+      "label": "DSPES · Calendario delle lezioni 2026 Scienze Politiche e Relazioni Internazionali (0831-0893) 2S"
+    },
+    {
+      "id": "6878f87b96ea080019d3db21",
+      "label": "DSPES · Calendario delle lezioni 2026 Servizio Sociale (0777-0889) 2S"
+    },
+    {
+      "id": "6878f481182d4e001eac180c",
+      "label": "DSPES · Calendario delle lezioni 2026 Scritture, Immagini, Media Digitali (0834) 2S"
+    },
+    {
+      "id": "6878fc5ad7e907001ff80e31",
+      "label": "DSPES · Calendario delle lezioni 2026 Scienze della Politica e Istituzioni Internazionali (0892) 2S"
+    },
+    {
+      "id": "6878fb5b4c1e05001fd31fef",
+      "label": "DSPES · Calendario delle lezioni 2026 Scienze delle Pubbliche Amministrazioni (0887) 2S"
+    },
+    {
+      "id": "6878fcd12d13e6001edcda23",
+      "label": "DSPES · Calendario delle lezioni 2026 Cooperazione, sviluppo, ecologia (0891) 2S"
+    },
+    {
+      "id": "6878fbb049f08d0019e7ec1e",
+      "label": "DSPES · Calendario delle lezioni 2026 Scienze delle Politiche e dei Servizi Sociali (0888) 2S"
+    },
+    {
+      "id": "69afeb158203d50019d01cc1",
+      "label": "DSPES · Calendario generale degli appelli DISPeS 2026/27"
+    },
+    {
+      "id": "6a63231e7e6b9600bbc5fd93",
+      "label": "DESF · Orario 1° anno CdL Economia - A.A. 2026/2027"
+    },
+    {
+      "id": "6a632535aae8aa00b5594f76",
+      "label": "DESF · Orario 2° anno CdL Economia - A.A. 2026/2027"
+    },
+    {
+      "id": "6a632799de54e8007a24a1a0",
+      "label": "DESF · Orario 3° anno CdL Economia - A.A. 2026/2027"
+    },
+    {
+      "id": "6a63238b7e6b9600bbc5fdc1",
+      "label": "DESF · Orario 1° anno CdL Statistica per Data Science - A.A. 2026/2027"
+    },
+    {
+      "id": "6a63257e9e36710014cd0620",
+      "label": "DESF · Orario 2° anno CdL Statistica per Data Science - A.A. 2026/2027"
+    },
+    {
+      "id": "6a6327d4de54e8007a24a1d0",
+      "label": "DESF · Orario 3° anno CdL Statistica per Data Science - A.A. 2026/2027"
+    },
+    {
+      "id": "6a632453de54e8007a24a06c",
+      "label": "DESF · Orario 1° anno CdLM Economia, Imprese e Sostenibilità - A.A. 2026/2027"
+    },
+    {
+      "id": "6a632663acb9d70071d051e4",
+      "label": "DESF · Orario 2° anno CdLM Economia, Imprese e Sostenibilità - A.A. 2026/2027"
+    },
+    {
+      "id": "6a6323ea7bf6a400143cf32a",
+      "label": "DESF · Orario 1° anno CdLM Data Science per le Strategie Aziendali - A.A. 2026/2027"
+    },
+    {
+      "id": "6a6325d84a2373001968598c",
+      "label": "DESF · Orario 2° anno CdLM Data Science per le Strategie Aziendali - A.A. 2026/2027"
+    },
+    {
+      "id": "6a6324b3b0e7470014a6276b",
+      "label": "DESF · Orario 1° anno CdLM Finance and Insurance - A.A. 2026/2027"
+    },
+    {
+      "id": "6a6326b34a237300196859e1",
+      "label": "DESF · Orario 2° anno CdLM Finance and Insurance - A.A. 2026/2027"
+    },
+    {
+      "id": "6a69b74935993b0019f54faf",
+      "label": "DIMEG · ORARIO 1 ANNO 1 SEMESTRE INGEGNERIA GESTIONALE TRIENNALE A.A 2026.27"
+    },
+    {
+      "id": "6a69c5bc79dcd70019b0a338",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE INGEGNERIA GESTIONALE TRIENNALE A.A 2026.27"
+    },
+    {
+      "id": "6a69c981962c4000193a1cfa",
+      "label": "DIMEG · ORARIO 3 ANNO 1 SEMESTRE INGEGNERIA GESTIONALE TRIENNALE A.A 2026.27"
+    },
+    {
+      "id": "6a67328790ea4600da3069a0",
+      "label": "DIMEG · ORARIO 1 ANNO 1 SEMESTRE INGEGNERIA MECCANICA TRIENNALE A.A 2026.27"
+    },
+    {
+      "id": "6a6741924a2373001968a38f",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE INGEGNERIA MECCANICA TRIENNALE A.A 2026.27"
+    },
+    {
+      "id": "6a67747f0a560b00ca2e19ed",
+      "label": "DIMEG · ORARIO 3 ANNO 1 SEMESTRE INGEGNERIA MECCANICA TRIENNALE A.A 2026.27"
+    },
+    {
+      "id": "6a6b2a541af3cb001963ab5d",
+      "label": "DIMEG · ORARIO 1 ANNO 1 SEMESTRE INGEGNERIA ENERGETICA MAGISTRALE A.A 2026.27"
+    },
+    {
+      "id": "6a6c85e8d9c27d0019129714",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE INGEGNERIA ENERGETICA MAGISTRALE A.A 2026.27 IND SGREMSTE"
+    },
+    {
+      "id": "6a6b2f301af3cb001963ad88",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE INGEGNERIA ENERGETICA MAGISTRALE A.A 2026.27 IND ERAC"
+    },
+    {
+      "id": "6a69d68c962c4000193a22cf",
+      "label": "DIMEG · ORARIO 1 ANNO 1 SEMESTRE INGEGNERIA GESTIONALE MAGISTRALE A.A 2026.27"
+    },
+    {
+      "id": "6a6b05a43593870014b4a257",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE INGEGNERIA GESTIONALE MAGISTRALE A.A 2026.27 IND HEALTH MANAGEMENT"
+    },
+    {
+      "id": "6a6b08609845810032000796",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE INGEGNERIA GESTIONALE MAG A.A 2026.27 IND SUSTAINABLE TRANSITION MANAGEMENT"
+    },
+    {
+      "id": "6a6af522f00ea40014e244c0",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE INGEGNERIA GESTIONALE MAGISTRALE A.A 2026.27 IND INDUSTRIAL MANAGEMENT"
+    },
+    {
+      "id": "6a6a1a3a3593870014b48c75",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE ING GESTIONALE MAG A.A 2026.27 IND BUSINESS STRATEGY AND PLANNING"
+    },
+    {
+      "id": "6a6af7a3962c4000193a4ab6",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE ING GESTIONALE MAGISTRALE A.A 2026.27 IND INFORMATION AND DATA MANAGEMENT"
+    },
+    {
+      "id": "6a6af9053593870014b49ba1",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE ING GESTIONALE MAGISTRALE A.A 2026.27 IND INNOVATION MANAGEMENT"
+    },
+    {
+      "id": "6a685a8e238923001404f9f2",
+      "label": "DIMEG · ORARIO 1 ANNO 1 SEMESTRE INGEGNERIA MECCANICA MAGISTRALE A.A 2026.27"
+    },
+    {
+      "id": "6a688d94238923001405101a",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE INGEGNERIA MECCANICA MAGISTRALE A.A 2026.27 IND PROGETTAZIONE MECCANICA"
+    },
+    {
+      "id": "6a6b0fae6bdd4f001446d76b",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE INGEGNERIA MECCANICA MAGISTRALE A.A 2026.27 IND ROBOTICA"
+    },
+    {
+      "id": "6a6b1041a1b5eb00191eee22",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE INGEGNERIA MECCANICA MAGISTRALE A.A 2026.27 IND INDUSTRIAL ENGINEERING"
+    },
+    {
+      "id": "6a68905d5290350019e275a5",
+      "label": "DIMEG · ORARIO 2 ANNO 1 SEMESTRE INGEGNERIA MECCANICA MAGISTRALE A.A 2026.27 INDIRIZZO BIOINGEGNERIA"
+    },
+    {
+      "id": "6ae87f048596e300194fcb16",
+      "label": "DIMEG · CALENDARIO ESAMI INGEGNERIA GESTIONALE TRIENNALE A.A. 2026.27"
+    },
+    {
+      "id": "687e3348e11d67001e6f7cd1",
+      "label": "DIMEG · CALENDARIO ESAMI FC INGEGNERIA GESTIONALE TRIENNALE A.A. 2025.26"
+    },
+    {
+      "id": "6ae8826528b0730058297c45",
+      "label": "DIMEG · CALENDARIO ESAMI INGEGNERIA MECCANICA TRIENNALE AA 2026.27"
+    },
+    {
+      "id": "68888dff42f22c001e97c3bc",
+      "label": "DIMEG · CALENDARIO ESAMI FC INGEGNERIA MECCANICA TRIENNALE AA 2025.26"
+    },
+    {
+      "id": "68fa0998b6f4f8003775220c",
+      "label": "DIMEG · CALENDARIO ESAMI FC INGEGNERIA ENERGETICA A.A. 2025.26"
+    },
+    {
+      "id": "6630ca8b3bb5bf0bb9446ea6",
+      "label": "DIMEG · CALENDARIO ESAMI ENERGETICA F.C. MAGISTRALE A.A 2024.25"
+    },
+    {
+      "id": "66f412d786eead001e23f424",
+      "label": "DIMEG · CALENDARIO ESAMI GESTIONALE F.C. MAGISTRALE AA 2024.25"
+    },
+    {
+      "id": "688c9b94a5fbe80019771ec9",
+      "label": "DIMEG · CALENDARIO ESAMI FC INGEGNERIA GESTIONALE MAGISTRALE AA 2025.26"
+    },
+    {
+      "id": "66f41580cff8ac0019f93eec",
+      "label": "DIMEG · CALENDARIO ESAMI MECCANICA F.C. MAGISTRALE AA 2024.25"
+    },
+    {
+      "id": "6889c6e8b07025001ea805ea",
+      "label": "DIMEG · CALENDARIO ESAMI FC INGEGNERIA MECCANICA MAGISTRALE AA 2025.26"
+    },
+    {
+      "id": "63c6ae07a62c1204f756b262",
+      "label": "DIBEST · Orario lezioni di Tutoraggio"
+    },
+    {
+      "id": "62e7a1649a708a0111d718c6",
+      "label": "DIBEST · Orario delle lezioni Biologia 1° anno"
+    },
+    {
+      "id": "62e7a3b13335f300e23646a8",
+      "label": "DIBEST · Orario delle lezioni Biologia 2° anno"
+    },
+    {
+      "id": "62e7a3e156ba71031859d231",
+      "label": "DIBEST · Orario delle lezioni Biologia 3° anno"
+    },
+    {
+      "id": "62e7a42d51e8ac03479b28f5",
+      "label": "DIBEST · Orario delle lezioni Scienze e Tecnologie Biologiche 1° anno"
+    },
+    {
+      "id": "62e7a45656ba71031859d262",
+      "label": "DIBEST · Orario delle lezioni Scienze e Tecnologie Biologiche 2° anno"
+    },
+    {
+      "id": "62e7a47656ba71031859d266",
+      "label": "DIBEST · Orario delle lezioni Scienze e Tecnologie Biologiche 3° anno"
+    },
+    {
+      "id": "62e7a58e51e8ac03479b2951",
+      "label": "DIBEST · Orario delle lezioni Scienze Naturali e Ambientali 1° anno"
+    },
+    {
+      "id": "62e7a5b63335f300e2364726",
+      "label": "DIBEST · Orario delle lezioni Scienze Naturali e Ambientali 2° anno"
+    },
+    {
+      "id": "62e7a65a9a708a0111d71b76",
+      "label": "DIBEST · Orario delle lezioni Scienze Naturali e Ambientali 3° anno"
+    },
+    {
+      "id": "62e7a4c556ba71031859d2a6",
+      "label": "DIBEST · Orario delle lezioni Scienze Geologiche 1° anno"
+    },
+    {
+      "id": "62e7a51651e8ac03479b292f",
+      "label": "DIBEST · Orario delle lezioni Scienze Geologiche 2° anno"
+    },
+    {
+      "id": "62e7a5419a708a0111d71ae5",
+      "label": "DIBEST · Orario delle lezioni Scienze Geologiche 3° anno"
+    },
+    {
+      "id": "66991c76c80e74009b634c31",
+      "label": "DIBEST · Orario delle lezioni Scienze e Tecnologie per le Attività Motorie e Sportive 1° anno"
+    },
+    {
+      "id": "68c156c3ab228e00371acdff",
+      "label": "DIBEST · Orario delle lezioni Scienze e Tecnologie per le Attività Motorie e Sportive 2° anno"
+    },
+    {
+      "id": "6ab1394acaf1a90019b2a0f2",
+      "label": "DIBEST · Orario delle lezioni Scienze e Tecnologie per le Attività Motorie e Sportive 2° anno"
+    },
+    {
+      "id": "62e7a1e0ba96b902e92f0ae7",
+      "label": "DIBEST · Orario delle lezioni Conservazione e Restauro dei Beni Culturali 1° anno"
+    },
+    {
+      "id": "62e7a2be56ba71031859d172",
+      "label": "DIBEST · Orario delle lezioni Conservazione e Restauro dei Beni Culturali 2° anno"
+    },
+    {
+      "id": "62e7a2dd3335f300e236465d",
+      "label": "DIBEST · Orario delle lezioni Conservazione e Restauro dei Beni Culturali 3° anno"
+    },
+    {
+      "id": "62e7a2f93335f300e236466a",
+      "label": "DIBEST · Orario delle lezioni Conservazione e Restauro dei Beni Culturali 4° anno"
+    },
+    {
+      "id": "62e7a31656ba71031859d1d8",
+      "label": "DIBEST · Orario delle lezioni Conservazione e Restauro dei Beni Culturali 5° anno"
+    },
+    {
+      "id": "62e7aa8c56ba71031859d6bf",
+      "label": "DIBEST · Orario delle lezioni Biologia Magistrale 1° anno"
+    },
+    {
+      "id": "62e7aaaf1af65f002c05af74",
+      "label": "DIBEST · Orario delle lezioni Biologia Magistrale 2° anno"
+    },
+    {
+      "id": "62e7ab2fc0712603765404b2",
+      "label": "DIBEST · Orario delle lezioni Biodiversità e Sistemi Naturali 1° anno"
+    },
+    {
+      "id": "62e7ab57c0712603765404b6",
+      "label": "DIBEST · Orario delle lezioni Biodiversità e Sistemi Naturali 2° anno"
+    },
+    {
+      "id": "62e7ac291af65f002c05afff",
+      "label": "DIBEST · Lesson Timetable Health Biotechnology 1° year"
+    },
+    {
+      "id": "62e7ac5356ba71031859d9e3",
+      "label": "DIBEST · Lesson Timetable Health Biotechnology 2° year"
+    },
+    {
+      "id": "62e7ac8d1af65f002c05b04a",
+      "label": "DIBEST · Orario delle lezioni Scienze Geologiche Magistrale 1° anno"
+    },
+    {
+      "id": "62e7acf21af65f002c05b0dd",
+      "label": "DIBEST · Orario delle lezioni Scienze Geologiche Magistrale 2° anno"
+    },
+    {
+      "id": "62e7b4b81af65f002c05b43a",
+      "label": "DIBEST · Calendario esami Biologia"
+    },
+    {
+      "id": "62e7b708c071260376540a54",
+      "label": "DIBEST · Calendario esami Scienze e Tecnologie Biologiche"
+    },
+    {
+      "id": "619e5d85c843dd0018a7265c",
+      "label": "DIBEST · Calendario esami Scienze Naturali e Scienze Naturali e Ambientali"
+    },
+    {
+      "id": "62e7b336c07126037654094d",
+      "label": "DIBEST · Calendario esami Scienze Geologiche"
+    },
+    {
+      "id": "61a4adcbbd0fd10017c1fccd",
+      "label": "DIBEST · Calendario esami Conservazione e Restauro dei Beni Culturali"
+    },
+    {
+      "id": "66991cedc80e74009b634c37",
+      "label": "DIBEST · Calendario esami Scienze e Tecnologie per le Attività Motorie e Sportive"
+    },
+    {
+      "id": "62e7b76e324d4b002614a793",
+      "label": "DIBEST · Calendario esami Biologia Magistrale"
+    },
+    {
+      "id": "6197b29ba8698a001bd28061",
+      "label": "DIBEST · Calendario esami Biodiversità e Sistemi Naturali"
+    },
+    {
+      "id": "63454e8aecfc6300e80afe9a",
+      "label": "DIBEST · Calendario esami CdL Health Biotechnology/Biotecnologie per la Salute"
+    },
+    {
+      "id": "62e7b36756ba71031859dd0c",
+      "label": "DIBEST · Calendario esami Scienze Geologiche Magistrale"
+    },
+    {
+      "id": "66d823dd154b32001ee452f2",
+      "label": "Scienze dell'educazione · Primo anno"
+    },
+    {
+      "id": "6aa3cfb5bfee950015349933",
+      "label": "Scienze dell'educazione · Secondo anno"
+    },
+    {
+      "id": "66d86efc822558001ec5660f",
+      "label": "Scienze dell'educazione · Terzo anno"
+    },
+    {
+      "id": "66d8741f84814b001f59afb9",
+      "label": "Scienze dell'educazione Blended · Terzo anno"
+    },
+    {
+      "id": "66d8742e84814b001f59afba",
+      "label": "Mediazione linguistica · Primo anno"
+    },
+    {
+      "id": "6aa3cba7bfee9500153497b3",
+      "label": "Mediazione linguistica · Secondo anno"
+    },
+    {
+      "id": "66d9730e1d8f560019e1bb89",
+      "label": "Mediazione linguistica · Terzo anno"
+    },
+    {
+      "id": "68b307cb7963f7001e142809",
+      "label": "Scienze e tecniche psicologiche · Primo anno"
+    },
+    {
+      "id": "6aa3cb24bfee950015349791",
+      "label": "Scienze e tecniche psicologiche · Secondo anno"
+    },
+    {
+      "id": "66d86f541d8f560019e1a254",
+      "label": "Scienze pedagogiche · Primo anno"
+    },
+    {
+      "id": "6aa3cf026be2210056b5a424",
+      "label": "Scienze pedagogiche · Secondo anno"
+    },
+    {
+      "id": "6aa3d08025ec890053b20399",
+      "label": "Gestione e conservazione dei documenti digitali · Secondo anno"
+    },
+    {
+      "id": "66d8748464bb94001e42686b",
+      "label": "Lingue per la comunicazione internazionale · Primo anno"
+    },
+    {
+      "id": "68b97824e15e570020871869",
+      "label": "Lingue per la comunicazione internazionale · Secondo anno"
+    },
+    {
+      "id": "6aa3d10e4fe18c00195b5209",
+      "label": "Digital humanities · Primo anno"
+    },
+    {
+      "id": "68c82c118067380055da5b53",
+      "label": "Fisica · 1° anno"
+    },
+    {
+      "id": "6a97e01950f25800143d9279",
+      "label": "Fisica · 2° anno"
+    },
+    {
+      "id": "634d1ac854a391067849c17b",
+      "label": "Fisica · 3° anno"
+    },
+    {
+      "id": "6ab11b6c48198a00e1b787df",
+      "label": "Fisica · insegnamenti a scelta"
+    },
+    {
+      "id": "68c804a54faf330087dc5de3",
+      "label": "Physics (0901) · 1° anno"
+    },
+    {
+      "id": "6ab0fea8e7437400198ac81f",
+      "label": "Physics (0901) · insegnamenti a scelta"
+    },
+    {
+      "id": "68c8623e4faf330087dc6cee",
+      "label": "ASTROPHYSICS, GEOPHYSICS AND PLASMA PHYSICS (0216) · 2° anno"
+    },
+    {
+      "id": "68c900f48067380055da60cd",
+      "label": "MATTER PHYSICS (0217) · 2° anno"
+    },
+    {
+      "id": "637f791ed606700111e3031f",
+      "label": "PHYSICS AND TECHNOLOGY OF MATERIALS (0218) · 2° anno"
+    },
+    {
+      "id": "68c902a24faf330087dc702a",
+      "label": "NUCLEAR AND SUBNUCLEAR PHYSICS (0219) · 2° anno"
+    },
+    {
+      "id": "68c905914faf330087dc7179",
+      "label": "PHYSICS OF THE ATMOSPHERE, METEOROLOGY AND CLIMATOLOGY (0220 · 2° anno"
+    },
+    {
+      "id": "6ace0e51c7e7bf0028d7c1cc",
+      "label": "DINCI · ORARIO DELLE LEZIONI 1° ANNO LT CIVILE 2026_27"
+    },
+    {
+      "id": "6aa9455a3374ec0028a19c98",
+      "label": "DINCI · ORARIO DELLE LEZIONI 2° ANNO LT CIVILE 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa945e3741e69002e939e3a",
+      "label": "DINCI · ORARIO DELLE LEZIONI 3° ANNO LT CIVILE 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa93f100d36b80083dab957",
+      "label": "DINCI · ORARIO DELLE LEZIONI 1° ANNO LM CIVILE STR 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa93dd00b40dc0014f950b9",
+      "label": "DINCI · ORARIO DELLE LEZIONI 1° ANNO LM CIVILE GET 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa93e72e74374001989e3d5",
+      "label": "DINCI · ORARIO DELLE LEZIONI 1° ANNO LM CIVILE IDR 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa93fb9d4326a0028c3cfa8",
+      "label": "DINCI · ORARIO DELLE LEZIONI 1° ANNO LM CIVILE TSP 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa941c93fc12600af3161db",
+      "label": "DINCI · ORARIO DELLE LEZIONI 2° ANNO LM CIVILE STR 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa9438a0b40dc0014f95339",
+      "label": "DINCI · ORARIO DELLE LEZIONI 2° ANNO LM CIVILE GET 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa9441b0b40dc0014f95350",
+      "label": "DINCI · ORARIO DELLE LEZIONI 2° ANNO LM CIVILE IDR 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa944a10d36b80083dabb17",
+      "label": "DINCI · ORARIO DELLE LEZIONI 2° ANNO LM CIVILE TSP 2025_26 1° SEMESTRE"
+    },
+    {
+      "id": "6aa9406e3374ec0028a19b1b",
+      "label": "DINCI · ORARIO DELLE LEZIONI 1° ANNO LMCU EDILE ARCHITETTURA 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa947a9a19cd70085887b52",
+      "label": "DINCI · ORARIO DELLE LEZIONI 2° ANNO LMCU EDILE ARCHITETTURA 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa946a40b40dc0014f953cc",
+      "label": "DINCI · ORARIO DELLE LEZIONI 3° ANNO LMCU EDILE ARCHITETTURA 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6ace121a2612ac0019ae28ec",
+      "label": "DINCI · ORARIO DELLE LEZIONI 4° ANNO LMCU EDILE ARCHITETTURA 2026_27"
+    },
+    {
+      "id": "6aa93ba0741e69002e939a84",
+      "label": "DINCI · ORARIO DELLE LEZIONI 5° ANNO LMCU EDILE ARCHITETTURA 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa93d1a0d36b80083dab84a",
+      "label": "DINCI · ORARIO DELLE LEZIONI 1° ANNO CEIR 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa941100d36b80083daba05",
+      "label": "DINCI · ORARIO DELLE LEZIONI 2° ANNO CEIR 2026_27 1° SEMESTRE"
+    },
+    {
+      "id": "6aa958aad4326a0028c3d9f1",
+      "label": "DEMACS · LT Informatica 1° anno - 1° semestre 2026/2027"
+    },
+    {
+      "id": "6aa959242f0def008f2f5b50",
+      "label": "DEMACS · LT Informatica 2° anno - 1° semestre 2026/2027"
+    },
+    {
+      "id": "6aa959a47c881300872c30ae",
+      "label": "DEMACS · LT Informatica 3° anno - 1° semestre 2026/2027"
+    },
+    {
+      "id": "6aa95a817c881300872c30e0",
+      "label": "DEMACS · LM AI&CS 1°anno - 1° semestre 2026/2027"
+    },
+    {
+      "id": "6aa95acce74374001989ed65",
+      "label": "DEMACS · LM AI&CS 2°anno - 1° semestre 2026/2027"
+    },
+    {
+      "id": "6aa952220b40dc0014f9589c",
+      "label": "DEMACS · LT Matematica 1° anno - 1° Semestre 2026/2027"
+    },
+    {
+      "id": "6aa95287e74374001989e8fb",
+      "label": "DEMACS · LT Matematica 2° anno - 1° Semestre 2026/2027"
+    },
+    {
+      "id": "6aa953153fc12600af316714",
+      "label": "DEMACS · LT Matematica 3° anno - 1° Semestre 2026/2027"
+    },
+    {
+      "id": "6aa953633374ec0028a1a36b",
+      "label": "DEMACS · LM Mathematics 1° anno - 1° Semestre 2026/2027"
+    },
+    {
+      "id": "6aa953a62f0def008f2f5999",
+      "label": "DEMACS · LM Mathematics 2° anno - 1° Semestre 2026/2027"
+    },
+    {
+      "id": "6aaa6bcfa19cd70085889e62",
+      "label": "DEMACS · LMCU SFP 1° anno - 1° semestre 2026/2027"
+    },
+    {
+      "id": "6aaa6c17a19cd70085889e6d",
+      "label": "DEMACS · LMCU SFP 2° anno - 1° semestre 2026/2027"
+    },
+    {
+      "id": "6aaa6c4c3fc12600af318a52",
+      "label": "DEMACS · LMCU SFP 3° anno - 1° semestre 2026/2027"
+    },
+    {
+      "id": "6aaa6c94a19cd70085889ea4",
+      "label": "DEMACS · LMCU SFP 4° anno - 1° semestre 2026/2027"
+    },
+    {
+      "id": "6aaa6cf37c881300872c55a9",
+      "label": "DEMACS · LMCU SFP 5° anno - 1° semestre 2026/2027"
+    }
+  ],
+  "sources": [
+    "https://dispes.unical.it/didattica/iscriversi-studiare-laurearsi/frequentare-i-corsi",
+    "https://desf.unical.it/contents/news/view/24897-aa-2026-2027-orario-primo-semestre-dal-21-settembre-al-19-dicembre-2026/",
+    "https://dimeg.unical.it/didattica/iscriversi-studiare-laurearsi/bacheca-corsi-di-studio/",
+    "https://dibest.unical.it/didattica/iscriversi-studiare-laurearsi/bacheca-corsi-di-studio/",
+    "https://dices.unical.it/didattica/iscriversi-studiare-laurearsi/bacheca-corsi-di-studio/",
+    "https://fisica.unical.it/didattica/iscriversi-studiare-laurearsi/bacheca-corsi-di-studio/orariolezioni/",
+    "https://corsi.unical.it/lt-lmcu/ingegneria-civile/contents/news/view/25012-orario-delle-lezioni-corso-di-laurea-in-ingegneria-civile/",
+    "https://corsi.unical.it/lm/ingegneria-civile/contents/news/view/25014-orario-dell-elezioni-corso-di-laurea-magistrale-in-ingegneria-civile/",
+    "https://corsi.unical.it/lt-lmcu/ingegneria-edile-architettura/contents/news/view/25013-orario-delle-lezioni-corso-di-laurea-magiustrale-a-cu-in-ingegneria-edile-architettura/",
+    "https://corsi.unical.it/lm/civil-engineering-for-infrastructural-regeneration/contents/news/view/25015-orario-delle-lezioni-civil-engineering-for-infrastructural-regeneration/",
+    "https://corsi.unical.it/lt-lmcu/informatica/orariodellelezioni/",
+    "https://corsi.unical.it/lm/artificial-intelligence-and-computer-science/orariodellelezioni/",
+    "https://corsi.unical.it/lt-lmcu/matematica/orario-delle-lezioni/",
+    "https://corsi.unical.it/lm/mathematics/orariodellelezioni/",
+    "https://corsi.unical.it/lt-lmcu/scienze-della-formazione-primaria/orariodellelezioni/"
+  ],
+  "roomSeeds": [
+    {
+      "building": "Cubo 31B",
+      "room": "MT1",
+      "floor": 0
+    },
+    {
+      "building": "Cubo 31B",
+      "room": "MT2",
+      "floor": 0
+    },
+    {
+      "building": "Cubo 31B",
+      "room": "MT3",
+      "floor": 0
+    },
+    {
+      "building": "Cubo 30B",
+      "room": "MT4",
+      "floor": 0
+    },
+    {
+      "building": "Cubo 31A",
+      "room": "MT5",
+      "floor": 0
+    },
+    {
+      "building": "Cubo 31A",
+      "room": "MT5bis",
+      "floor": 0
+    },
+    {
+      "building": "Cubo 30B",
+      "room": "MT6",
+      "floor": 0
+    },
+    {
+      "building": "Cubo 30B",
+      "room": "MT8",
+      "floor": 0
+    },
+    {
+      "building": "Cubo 31B",
+      "room": "MT13",
+      "floor": 2
+    },
+    {
+      "building": "Cubo 31B",
+      "room": "MT14",
+      "floor": 2
+    },
+    {
+      "building": "Cubo 31A",
+      "room": "MT15",
+      "floor": 1
+    },
+    {
+      "building": "Cubo 30A",
+      "room": "A",
+      "floor": 0
+    },
+    {
+      "building": "Cubo 3C",
+      "room": "Aula informatica 1",
+      "floor": 0
+    },
+    {
+      "building": "Cubo 3C",
+      "room": "Aula informatica 2",
+      "floor": 0
+    },
+    {
+      "building": "Cubo 3D",
+      "room": "LD3",
+      "floor": 0
+    }
+  ],
+  "buildingLinks": {
+    "Ampliamento Polifunzionale": "edificio-ampliamento-polifunzionale",
+    "Polifunzionale Capannone F": "capannone-f",
+    "Centro Sportivo Universitario - CUS": "centro-universitario-sportivo"
+  }
+}
