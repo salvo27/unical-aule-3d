@@ -59,8 +59,19 @@ test('a redraw of the same view keeps the body scroll; the status refresh redraw
   assert.ok(render);
   assert.match(render[0], /const top = renderedView === v \? panelBody\.scrollTop : 0;/);
   assert.match(render[0], /renderedView = v;\n {2}panelBody\.scrollTop = top;\n\}$/);
-  assert.match(app, /const view = refresh \? state\.view : \{ name: 'search'/);
-  assert.match(app, /if \(!refresh\) setSheet\('normal'\);/);
+  assert.match(app, /const view = refresh \|\| typing \? state\.view : \{ name: 'search'/);
+  assert.match(app, /if \(!refresh && !typing\) setSheet\('normal'\);/);
+});
+
+test('while typing a search the previous results stay, dimmed, until the new ones arrive', () => {
+  assert.match(app, /const typing = !refresh && state\.view\.name === 'search';/);
+  assert.match(app, /view\.pending = true;/);
+  assert.match(app, /view\.pending = false;/);
+  const render = /^function render\(\) \{\n[\s\S]*?\n\}$/m.exec(app);
+  assert.ok(render);
+  assert.match(render[0], /panelBody\.classList\.toggle\('is-pending', pending\);/);
+  assert.match(render[0], /panelBody\.setAttribute\('aria-busy', String\(pending\)\);/);
+  assert.match(read('public/style.css'), /\.panel-body\.is-pending \{ opacity: 0\.6;/);
 });
 
 test('the close button sits in the panel head, not in the scrolled body', () => {

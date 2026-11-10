@@ -90,6 +90,8 @@ html, body { height: 100%; margin: 0; background: var(--surface-alt); }
 }
 
 .panel-body { flex: 1; overflow-y: auto; padding: 8px 0 12px; }
+.panel-body.is-pending { opacity: 0.6; transition: opacity 0.15s; }
+@media (prefers-reduced-motion: reduce) { .panel-body.is-pending { transition: none; } }
 
 .panel-foot {
   padding: 8px 16px;

@@ -610,6 +610,9 @@ function render() {
   for (const c of [...panel.classList]) if (c.startsWith('view-')) panel.classList.remove(c);
   panel.classList.add(`view-${v.name}`);
   panelClose.hidden = !CLOSABLE.has(v.name);
+  const pending = v.name === 'search' && v.pending === true && Boolean(v.results);
+  panelBody.classList.toggle('is-pending', pending);
+  panelBody.setAttribute('aria-busy', String(pending));
   panelBody.replaceChildren();
   if (state.status && !isFresh()) {
     panelBody.append(el('div', { className: 'notice notice-stale' }, 'Non riesco ad aggiornare i dati: per sicurezza le aule sono mostrate in grigio.'));
@@ -1297,12 +1300,15 @@ async function runSearch(reset = true) {
   if (f.seats) params.set('seats', String(f.seats));
   // A refresh redraws the same view, so its scroll and the sheet stay as they are; a new search is a new view.
   const refresh = !reset && state.view.name === 'search';
-  const view = refresh ? state.view : { name: 'search', results: null, error: null, places: [] };
+  // While typing, the previous results stay on screen, dimmed, until the new ones arrive: the panel does not jump.
+  const typing = !refresh && state.view.name === 'search';
+  const view = refresh || typing ? state.view : { name: 'search', results: null, error: null, places: [] };
   view.error = null;
+  view.pending = true;
   view.places = q ? matchPlaces(q) : [];
   state.view = view;
   state.history = [];
-  if (!refresh) setSheet('normal');
+  if (!refresh && !typing) setSheet('normal');
   render();
   // Only the latest request counts, also when a refresh and a new search overlap.
   const seq = ++searchSeq;
@@ -1314,9 +1320,12 @@ async function runSearch(reset = true) {
     error = err;
   }
   if (seq !== searchSeq) return;
+  view.pending = false;
   if (error) view.error = error;
   else view.results = results;
-  if (state.view === view) render();
+  if (state.view !== view) return;
+  if (typing) renderedView = null;
+  render();
 }
 
 function lessonHitRow(hit) {
