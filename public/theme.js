@@ -7,7 +7,9 @@ export const FONTS = ['atkinson', 'sistema'];
 const DEFAULT_THEME = 'essenziale';
 const FONT_LABELS = { atkinson: 'Atkinson Hyperlegible', sistema: 'Sistema' };
 
-const params = new URLSearchParams(location.search);
+// The switch is a development tool: online the page always uses the default look and font.
+const LOCAL = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+const params = new URLSearchParams(LOCAL ? location.search : '');
 export const theme = THEMES.includes(params.get('tema')) ? params.get('tema') : DEFAULT_THEME;
 const DEFAULT_FONT = theme === 'attuale' ? 'sistema' : 'atkinson';
 export const font = FONTS.includes(params.get('font')) ? params.get('font') : DEFAULT_FONT;
