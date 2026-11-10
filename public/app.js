@@ -33,9 +33,10 @@ const SEARCH_DELAY_MS = 400;
 const STATUS_MAX_AGE_MS = 5 * 60_000;
 const MENSA_PAGE = 'https://www.unical.it/campus/vivere-il-campus/servizio-mensa/';
 const COLORS = {
-  free: '#2e9b57',
-  busy: '#d64541',
-  unknown: '#9aa1a9',
+  // The map uses the light shades for every floor.
+  free: '#a9d9bb',
+  busy: '#f0b3b1',
+  unknown: '#cfd3d8',
   plinth: '#d9d3c9',
   food: '#e0a33a',
   library: '#3b7dd8',

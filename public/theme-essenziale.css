@@ -798,8 +798,8 @@
   border-radius: 3px;
 }
 
-:root[data-theme="essenziale"] .sw-free { background: var(--es-free); border-radius: 50%; }
-:root[data-theme="essenziale"] .sw-busy { width: 9px; height: 9px; margin: 0 0.5px; background: var(--es-busy); border-radius: 0; }
+:root[data-theme="essenziale"] .sw-free { background: #a9d9bb; box-shadow: inset 0 0 0 1px var(--es-free); border-radius: 50%; }
+:root[data-theme="essenziale"] .sw-busy { width: 9px; height: 9px; margin: 0 0.5px; background: #f0b3b1; box-shadow: inset 0 0 0 1px var(--es-busy); border-radius: 0; }
 :root[data-theme="essenziale"] .sw-unknown { background: transparent; border: 2px dashed var(--es-unknown); border-radius: 50%; }
 :root[data-theme="essenziale"] .sw-none { background: var(--es-none); border: 1px solid var(--es-none-line); }
 :root[data-theme="essenziale"] .sw-food { background: var(--es-food); }

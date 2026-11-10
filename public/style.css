@@ -251,9 +251,9 @@ html, body { height: 100%; margin: 0; background: var(--surface-alt); }
 
 .legend span { display: flex; align-items: center; gap: 8px; }
 .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-.sw-free { background: var(--free); }
-.sw-busy { background: var(--busy); }
-.sw-unknown { background: var(--unknown); }
+.sw-free { background: var(--free-soft); box-shadow: inset 0 0 0 1px var(--free); }
+.sw-busy { background: var(--busy-soft); box-shadow: inset 0 0 0 1px var(--busy); }
+.sw-unknown { background: var(--unknown-soft); box-shadow: inset 0 0 0 1px var(--unknown); }
 .sw-none { background: var(--none); border: 1px solid #d8d2c8; }
 .sw-food { background: var(--food); }
 
