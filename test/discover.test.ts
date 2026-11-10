@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { extractCalendarLinks, discover } from '../src/sync/discover.js';
-import { sourceUrl } from '../src/domain/primitives.js';
+import { plannerTitles } from '../src/sync/titles.js';
+import { calendarId, sourceUrl } from '../src/domain/primitives.js';
+import type { PlannerApi } from '../src/planner/client.js';
 import { CAL_1, CAL_2 } from './fixtures.js';
 
 const SOURCE = sourceUrl('https://dispes.unical.it/didattica/frequentare-i-corsi');
@@ -45,15 +47,22 @@ test('discover follows redirects only inside unical.it', async () => {
     if (url.endsWith('/a')) return response('', { status: 302, headers: { location: '/b' } });
     if (url.endsWith('/b')) return response(`<a href="${PLANNER}${CAL_1}">x</a>`);
     if (url.endsWith('/evil')) return response('', { status: 301, headers: { location: 'https://evil.example/' } });
+    if (url.endsWith('/token')) return response('', { status: 302, headers: { location: '/gAAAAABprova' } });
     return response('', { status: 404 });
   }) as unknown as typeof fetch;
   const out = await discover(
-    [sourceUrl('https://dispes.unical.it/a'), sourceUrl('https://dispes.unical.it/evil'), sourceUrl('https://dispes.unical.it/missing')],
-    { fetchImpl: fakeFetch },
+    [
+      sourceUrl('https://dispes.unical.it/a'),
+      sourceUrl('https://dispes.unical.it/evil'),
+      sourceUrl('https://dispes.unical.it/missing'),
+      sourceUrl('https://dispes.unical.it/token'),
+    ],
+    { fetchImpl: fakeFetch, sleep: async () => undefined },
   );
   assert.deepEqual(out.found.map((f) => f.id), [CAL_1]);
-  assert.deepEqual(out.failures.map((f) => f.failure), ['redirect_blocked', 'http_status']);
+  assert.deepEqual(out.failures.map((f) => f.failure), ['redirect_blocked', 'http_status', 'redirect_blocked']);
   assert.ok(!calls.some((c) => c.includes('evil.example')));
+  assert.ok(!calls.some((c) => c.includes('gAAAAAB')), 'robots.txt disallows *gAAAAAB*');
 });
 
 test('discover refuses non html and oversized pages', async () => {
@@ -61,6 +70,47 @@ test('discover refuses non html and oversized pages', async () => {
     if (url.endsWith('/json')) return new Response('{}', { headers: { 'content-type': 'application/json' } });
     return response('x'.repeat(5_000));
   }) as unknown as typeof fetch;
-  const out = await discover([sourceUrl('https://unical.it/json'), sourceUrl('https://unical.it/big')], { fetchImpl: fakeFetch, maxBytes: 1_000 });
+  const out = await discover([sourceUrl('https://unical.it/json'), sourceUrl('https://unical.it/big')], { fetchImpl: fakeFetch, maxBytes: 1_000, sleep: async () => undefined });
   assert.deepEqual(out.failures.map((f) => f.failure), ['not_html', 'too_large']);
+});
+
+test('discover pauses 300 ms before every request but the first, redirects included', async () => {
+  const events: string[] = [];
+  const fakeFetch = (async (url: string) => {
+    events.push(`get ${new URL(url).pathname}`);
+    if (url.endsWith('/a')) return response('', { status: 302, headers: { location: '/b' } });
+    return response(`<a href="${PLANNER}${CAL_1}">x</a>`);
+  }) as unknown as typeof fetch;
+  const sleep = async (ms: number) => void events.push(`pause ${ms}`);
+  await discover([sourceUrl('https://dispes.unical.it/a'), sourceUrl('https://dispes.unical.it/c')], { fetchImpl: fakeFetch, sleep });
+  assert.deepEqual(events, ['get /a', 'pause 300', 'get /b', 'pause 300', 'get /c']);
+});
+
+test('Planner titles: at most 3 requests in flight and a 300 ms pause between the requests of each worker', async () => {
+  const ids = Array.from({ length: 8 }, (_v, i) => calendarId(String(i + 1).repeat(24)));
+  let inFlight = 0;
+  let peak = 0;
+  const calls: string[] = [];
+  const pauses: number[] = [];
+  const api: PlannerApi = {
+    clientId: async () => '5de6319d4414ab02f80b613a',
+    calendarEvents: async () => [],
+    calendarInfo: async (id) => {
+      calls.push(id);
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, 1));
+      inFlight -= 1;
+      if (id === ids[2]) throw new Error('down');
+      return { payload: { titolo: `Calendario ${id.slice(0, 1)}` } };
+    },
+  };
+  const titles = await plannerTitles(api, ids, { sleep: async (ms) => void pauses.push(ms) });
+  assert.equal(calls.length, 8);
+  assert.ok(peak <= 3);
+  assert.deepEqual(pauses, new Array(5).fill(300), 'every request after the first of each worker waits');
+  assert.equal(titles.size, 7);
+  assert.equal(titles.get(ids[0]!), 'Calendario 1');
+  assert.deepEqual(await plannerTitles(api, [ids[0]!], { sleep: async (ms) => void pauses.push(ms) }), new Map([[ids[0]!, 'Calendario 1']]));
+  assert.equal(pauses.length, 5, 'a single request never waits');
 });

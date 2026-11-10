@@ -1,0 +1,146 @@
+name: sync
+
+on:
+  schedule:
+    - cron: '17 6,13 * * *'
+      timezone: 'Europe/Rome'
+    - cron: '47 5 * * 1'
+      timezone: 'Europe/Rome'
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+    inputs:
+      task:
+        description: Cosa eseguire
+        type: choice
+        options: [sync, discover, both, probe]
+        default: sync
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aule-sync
+  cancel-in-progress: false
+
+jobs:
+  decide:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      sync: ${{ steps.decide.outputs.sync }}
+      discover: ${{ steps.decide.outputs.discover }}
+      probe: ${{ steps.decide.outputs.probe }}
+      trigger: ${{ steps.decide.outputs.trigger }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          TASK: ${{ inputs.task }}
+        run: |
+          set -eu
+          url=$(jq -r '.vars.SUPABASE_URL // ""' wrangler.json)
+          key=$(jq -r '.vars.SUPABASE_PUBLISHABLE_KEY // ""' wrangler.json)
+          req_sync=false
+          req_discover=false
+          if [[ "$url" =~ ^https://[A-Za-z0-9.-]+$ && "$key" =~ ^sb_publishable_[A-Za-z0-9_-]{10,200}$ ]] \
+            && body=$(curl -sS --fail --proto '=https' --max-time 15 -X POST \
+              -H "apikey: $key" -H 'Content-Type: application/json' -H 'Accept: application/json' \
+              -d '{}' "$url/rest/v1/rpc/sync_requests"); then
+            req_sync=$(printf '%s' "$body" | jq -r 'if .sync == true then "true" else "false" end' 2>/dev/null || echo false)
+            req_discover=$(printf '%s' "$body" | jq -r 'if .discover == true then "true" else "false" end' 2>/dev/null || echo false)
+          else
+            echo '{"event":"flags_unavailable"}'
+          fi
+          sync=false; discover=false; probe=false; trigger=poll
+          case "$EVENT" in
+            workflow_dispatch)
+              trigger=manual
+              case "$TASK" in
+                sync) sync=true ;;
+                discover) discover=true ;;
+                both) sync=true; discover=true ;;
+                probe) probe=true ;;
+              esac ;;
+            schedule)
+              case "$SCHEDULE" in
+                '17 6,13 * * *') sync=true; discover=$req_discover; trigger=schedule ;;
+                '47 5 * * 1') discover=true; sync=$req_sync ;;
+                *) sync=$req_sync; discover=$req_discover ;;
+              esac ;;
+          esac
+          {
+            echo "sync=$sync"
+            echo "discover=$discover"
+            echo "probe=$probe"
+            echo "trigger=$trigger"
+          } >> "$GITHUB_OUTPUT"
+          echo "{\"event\":\"decided\",\"sync\":$sync,\"discover\":$discover,\"probe\":$probe}"
+
+  sync:
+    needs: decide
+    if: needs.decide.outputs.sync == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: sync
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx tsc -p tsconfig.json
+      - name: Sync
+        env:
+          SYNC_DB_HOST: ${{ vars.SYNC_DB_HOST }}
+          SYNC_DB_USER: ${{ vars.SYNC_DB_USER }}
+          SYNC_DB_PASSWORD: ${{ secrets.SYNC_DB_PASSWORD }}
+          SYNC_TRIGGER: ${{ needs.decide.outputs.trigger }}
+        run: node dist/src/cli/sync-db.js
+
+  discover:
+    needs: decide
+    if: needs.decide.outputs.discover == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: sync
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx tsc -p tsconfig.json
+      - name: Discover
+        env:
+          SYNC_DB_HOST: ${{ vars.SYNC_DB_HOST }}
+          SYNC_DB_USER: ${{ vars.SYNC_DB_USER }}
+          SYNC_DB_PASSWORD: ${{ secrets.SYNC_DB_PASSWORD }}
+        run: node dist/src/cli/discover-db.js
+
+  probe:
+    needs: decide
+    if: needs.decide.outputs.probe == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx tsc -p tsconfig.json
+      - name: Probe
+        run: node dist/src/cli/probe-planner.js

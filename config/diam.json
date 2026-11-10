@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "pageUrl": "https://diam.unical.it/didattica/iscriversi-studiare-laurearsi/orario-delle-lezioni/",
+  "academicYear": "2026-2027",
+  "semesters": {
+    "1": { "first": "2026-09-21", "last": "2026-12-19" },
+    "2": { "first": "2027-02-22", "last": "2027-06-05" }
+  },
+  "closedDays": [
+    "2026-11-01",
+    "2026-12-08",
+    "2026-12-21",
+    "2026-12-22",
+    "2026-12-23",
+    "2026-12-24",
+    "2026-12-25",
+    "2026-12-26",
+    "2026-12-27",
+    "2026-12-28",
+    "2026-12-29",
+    "2026-12-30",
+    "2026-12-31",
+    "2027-01-01",
+    "2027-01-02",
+    "2027-01-03",
+    "2027-01-04",
+    "2027-01-05",
+    "2027-01-06",
+    "2027-02-11",
+    "2027-02-20",
+    "2027-03-25",
+    "2027-03-26",
+    "2027-03-27",
+    "2027-03-28",
+    "2027-03-29",
+    "2027-03-30",
+    "2027-04-25",
+    "2027-05-01",
+    "2027-06-02"
+  ],
+  "sheets": [
+    {
+      "file": "LT",
+      "sheet": "I ANNO - Ambiente",
+      "year": 1,
+      "course": "INGEGNERIA PER L'AMBIENTE E LA SICUREZZA DEL TERRITORIO",
+      "label": "DIAm · Orario 1° anno LT Ingegneria per l'Ambiente e la Sicurezza del Territorio 2026/2027 (xlsx)"
+    },
+    {
+      "file": "LT",
+      "sheet": "I ANNO - Mare",
+      "year": 1,
+      "course": "TECNOLOGIE DEL MARE E DELLA NAVIGAZIONE",
+      "label": "DIAm · Orario 1° anno LT Tecnologie del Mare e della Navigazione 2026/2027 (xlsx)"
+    },
+    {
+      "file": "LT",
+      "sheet": "II ANNO - Ambiente",
+      "year": 2,
+      "course": "INGEGNERIA PER L'AMBIENTE E LA SICUREZZA DEL TERRITORIO",
+      "label": "DIAm · Orario 2° anno LT Ingegneria per l'Ambiente e la Sicurezza del Territorio 2026/2027 (xlsx)"
+    },
+    {
+      "file": "LT",
+      "sheet": "II ANNO - Mare",
+      "year": 2,
+      "course": "TECNOLOGIE DEL MARE E DELLA NAVIGAZIONE",
+      "label": "DIAm · Orario 2° anno LT Tecnologie del Mare e della Navigazione 2026/2027 (xlsx)"
+    },
+    {
+      "file": "LT",
+      "sheet": "III ANNO - Ambiente",
+      "year": 3,
+      "course": "INGEGNERIA PER L'AMBIENTE E LA SICUREZZA DEL TERRITORIO",
+      "label": "DIAm · Orario 3° anno LT Ingegneria per l'Ambiente e la Sicurezza del Territorio 2026/2027 (xlsx)"
+    },
+    {
+      "file": "LT",
+      "sheet": "III ANNO - Mare",
+      "year": 3,
+      "course": "TECNOLOGIE DEL MARE E DELLA NAVIGAZIONE",
+      "label": "DIAm · Orario 3° anno LT Tecnologie del Mare e della Navigazione 2026/2027 (xlsx)"
+    },
+    {
+      "file": "LM",
+      "sheet": "1° LM Ambiente",
+      "year": 1,
+      "course": "INGEGNERIA PER L'AMBIENTE E LA SICUREZZA DEL TERRITORIO",
+      "label": "DIAm · Orario 1° anno LM Ingegneria per l'Ambiente e la Sicurezza del Territorio 2026/2027 (xlsx)"
+    },
+    {
+      "file": "LM",
+      "sheet": "2° LM Ambiente",
+      "year": 2,
+      "course": "INGEGNERIA PER L'AMBIENTE E LA SICUREZZA DEL TERRITORIO",
+      "label": "DIAm · Orario 2° anno LM Ingegneria per l'Ambiente e la Sicurezza del Territorio 2026/2027 (xlsx)"
+    }
+  ],
+  "rooms": [
+    { "alias": "B", "name": "DIAM B", "building": "Cubo 42B", "capacity": 135 },
+    { "alias": "C", "name": "DIAM C", "building": "Cubo 42B", "capacity": 54 },
+    { "alias": "D", "name": "DIAM D", "building": "Cubo 42B", "capacity": 60 },
+    { "alias": "E", "name": "DIAM E", "building": "Cubo 39C", "capacity": 72 },
+    { "alias": "F", "name": "DIAM F", "building": "Cubo 39C", "capacity": 62 },
+    { "alias": "G", "name": "DIAM G", "building": "Cubo 39C", "capacity": 72 },
+    { "alias": "H", "name": "DIAM H", "building": "Cubo 39C", "capacity": 24 },
+    { "alias": "GIANNATTASIO", "name": "Aula Giannattasio", "building": "Cubo 46C", "capacity": 23 },
+    { "alias": "SEMINARI", "name": "Aula Seminari", "building": "Cubo 45A", "capacity": 23 }
+  ]
+}

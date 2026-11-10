@@ -17,6 +17,8 @@ interface Options {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
   maxBytes?: number;
+  pauseMs?: number;
+  sleep?: (ms: number) => Promise<void>;
 }
 
 const TOKEN = /<(h[1-6]|strong|b)\b[^>]*>([\s\S]*?)<\/\1>|<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
@@ -113,9 +115,10 @@ async function readLimited(res: Response, maxBytes: number): Promise<string> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-async function fetchPage(start: SourceUrl, options: Required<Options>): Promise<string> {
+async function fetchPage(start: SourceUrl, options: Required<Options>, pace: () => Promise<void>): Promise<string> {
   let url: SourceUrl = start;
   for (let hop = 0; hop <= 3; hop++) {
+    await pace();
     let res: Response;
     try {
       res = await options.fetchImpl(url, {
@@ -135,6 +138,8 @@ async function fetchPage(start: SourceUrl, options: Required<Options>): Promise<
       } catch {
         throw new DiscoveryError('redirect_blocked');
       }
+      // robots.txt of the unical.it hosts: "Disallow: *gAAAAAB*".
+      if (url.includes('gAAAAAB')) throw new DiscoveryError('redirect_blocked');
       continue;
     }
     if (!res.ok) {
@@ -155,12 +160,20 @@ export async function discover(sources: readonly SourceUrl[], options: Options =
     fetchImpl: options.fetchImpl ?? fetch,
     timeoutMs: options.timeoutMs ?? 20_000,
     maxBytes: options.maxBytes ?? 3_000_000,
+    pauseMs: options.pauseMs ?? 300,
+    sleep: options.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms))),
+  };
+  // Politeness: a pause before every request but the first, redirects included.
+  let first = true;
+  const pace = async () => {
+    if (!first && opts.pauseMs > 0) await opts.sleep(opts.pauseMs);
+    first = false;
   };
   const result: DiscoveryResult = { found: [], failures: [] };
   const seen = new Set<string>();
   for (const source of sources) {
     try {
-      const html = await fetchPage(source, opts);
+      const html = await fetchPage(source, opts, pace);
       for (const item of extractCalendarLinks(html, source)) {
         if (seen.has(item.id)) continue;
         seen.add(item.id);
