@@ -15,11 +15,10 @@ Online: https://aule-unical.pages.dev
 - **Posizione:** un bottone mostra dove sei sulla mappa; la posizione resta nel tuo browser.
 - **Dal telefono:** il pannello si apre, si chiude e si trascina, così la mappa resta visibile.
 - **Aggiornamento automatico:** gli orari si aggiornano da soli più volte al giorno.
-- **Area admin:** riservata agli amministratori, per gestire la configurazione.
 
 ## Statistiche
 
-Il sito conta le visite con Cloudflare Web Analytics: statistiche anonime, senza cookie e senza profilazione. L'area admin non le usa.
+Il sito conta le visite con Cloudflare Web Analytics: statistiche anonime, senza cookie e senza profilazione.
 
 ## Licenza
 
