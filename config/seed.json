@@ -639,6 +639,118 @@
     {
       "id": "6aaa6cf37c881300872c55a9",
       "label": "DEMACS · LMCU SFP 5° anno - 1° semestre 2026/2027"
+    },
+    {
+      "id": "62306d204f9d7f00e457a21c",
+      "label": "CTC · Prenotazioni aule (Cubo 15C e 17C)"
+    },
+    {
+      "id": "6abbcc1362d2f50014491bb5",
+      "label": "DINCI · CALENDARIO ESAMI LT CIVILE 2026_27"
+    },
+    {
+      "id": "6abbcdb0fb6a7b0014baf04e",
+      "label": "DINCI · CALENDARIO ESAMI LM CIVILE 2026_27"
+    },
+    {
+      "id": "6abcd965ac9b9b0014b14c2e",
+      "label": "DINCI · CALENDARIO ESAMI LM CEIR 2026_27"
+    },
+    {
+      "id": "6abbce40f2709d00156bdf2e",
+      "label": "DINCI · CALENDARIO ESAMI LMCU EDILE ARCHITETTURA 2026_27"
+    },
+    {
+      "id": "6adf3ed0d5918001c495394f",
+      "label": "DEMACS · Calendario Esami CdS Informatica - Sessione Straordinaria Novembre 2026"
+    },
+    {
+      "id": "6adf3f9b86175c01c59d217e",
+      "label": "DEMACS · Calendario Esami CdS Matematica - Sessione Straordinaria Novembre 2026"
+    },
+    {
+      "id": "6adf407b86175c01c59d2190",
+      "label": "DEMACS · Calendario Esami SFP - Sessione Straordinaria Novembre 2026"
+    },
+    {
+      "id": "6ac37c5810ff51007a3abd6b",
+      "label": "Fisica · Esami appello straordinario nov 2026 fuori corso (tutti gli esami LT 2026/27)"
+    },
+    {
+      "id": "68bfcbdd5cb09b001eff1745",
+      "label": "Fisica · Esami 1° anno"
+    },
+    {
+      "id": "68bff47e661b0a001e2207a4",
+      "label": "Fisica · Esami 2° anno"
+    },
+    {
+      "id": "68c004e0ac9ec00019b08871",
+      "label": "Fisica · Esami 3° anno"
+    },
+    {
+      "id": "67066953aac551001fd31b3e",
+      "label": "Fisica · Esami recupero gennaio 2027 1° anno"
+    },
+    {
+      "id": "68c01312826b6e0019e8c8f0",
+      "label": "Fisica · Esami recupero gennaio 2027 2° anno"
+    },
+    {
+      "id": "67066d98f8c49d001ac027a0",
+      "label": "Fisica · Esami recupero gennaio 2027 3° anno"
+    },
+    {
+      "id": "6ac3835d0c41de00144c1320",
+      "label": "Physics (0901) · Esami appello straordinario nov 2026 fuori corso (tutti gli esami LM 2026/27)"
+    },
+    {
+      "id": "68c133c26d185d001973304c",
+      "label": "Physics (0901) · Esami ASTROPHYSICS, GEOPHYSICS AND PLASMA PHYSICS 1° anno"
+    },
+    {
+      "id": "68c03942c58344001e0fc416",
+      "label": "Physics (0901) · Esami ASTROPHYSICS, GEOPHYSICS AND PLASMA PHYSICS 2° anno"
+    },
+    {
+      "id": "68c137278f4bb10019441597",
+      "label": "Physics (0901) · Esami MATTER PHYSICS 1° anno"
+    },
+    {
+      "id": "68c17c10c69ffa00413344d4",
+      "label": "Physics (0901) · Esami MATTER PHYSICS 2° anno"
+    },
+    {
+      "id": "68c1380567f19900374974a1",
+      "label": "Physics (0901) · Esami PHYSICS AND TECHNOLOGY OF MATERIALS 1° anno"
+    },
+    {
+      "id": "68c17c2d942e95002da34793",
+      "label": "Physics (0901) · Esami PHYSICS AND TECHNOLOGY OF MATERIALS 2° anno"
+    },
+    {
+      "id": "68c1386ad50f6d001ed9263d",
+      "label": "Physics (0901) · Esami NUCLEAR AND SUBNUCLEAR PHYSICS 1° anno"
+    },
+    {
+      "id": "68c03b5d8065e9001e819a1e",
+      "label": "Physics (0901) · Esami NUCLEAR AND SUBNUCLEAR PHYSICS 2° anno"
+    },
+    {
+      "id": "68c139238f4bb10019441856",
+      "label": "Physics (0901) · Esami PHYSICS OF THE ATMOSPHERE, METEOROLOGY AND CLIMATOLOGY 1° anno"
+    },
+    {
+      "id": "68c17ca9942e95002da347b2",
+      "label": "Physics (0901) · Esami PHYSICS OF THE ATMOSPHERE, METEOROLOGY AND CLIMATOLOGY 2° anno"
+    },
+    {
+      "id": "68e64a6abea21c0036619cbd",
+      "label": "Physics (0901) · Esami insegnamenti a scelta"
+    },
+    {
+      "id": "68c3c210a606080041238784",
+      "label": "Physics (0901) · Esami recupero gennaio 2027 1° anno (tutti i curricula)"
     }
   ],
   "sources": [
@@ -656,7 +768,16 @@
     "https://corsi.unical.it/lm/artificial-intelligence-and-computer-science/orariodellelezioni/",
     "https://corsi.unical.it/lt-lmcu/matematica/orario-delle-lezioni/",
     "https://corsi.unical.it/lm/mathematics/orariodellelezioni/",
-    "https://corsi.unical.it/lt-lmcu/scienze-della-formazione-primaria/orariodellelezioni/"
+    "https://corsi.unical.it/lt-lmcu/scienze-della-formazione-primaria/orariodellelezioni/",
+    "https://ctc.unical.it/didattica/iscriversi-studiare-laurearsi/bacheca-corsi-di-studio/",
+    "https://corsi.unical.it/lt-lmcu/ingegneria-civile/",
+    "https://corsi.unical.it/lm/ingegneria-civile/",
+    "https://corsi.unical.it/lm/civil-engineering-for-infrastructural-regeneration/",
+    "https://corsi.unical.it/lt-lmcu/ingegneria-edile-architettura/",
+    "https://corsi.unical.it/lt-lmcu/informatica/calendariodegliesami/",
+    "https://corsi.unical.it/lt-lmcu/matematica/calendariodegli-esami/",
+    "https://corsi.unical.it/lt-lmcu/scienze-della-formazione-primaria/calendariodegliesami/",
+    "https://fisica.unical.it/didattica/iscriversi-studiare-laurearsi/bacheca-corsi-di-studio/calendarioesami/"
   ],
   "roomSeeds": [
     {
