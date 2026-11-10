@@ -282,8 +282,7 @@ html, body { height: 100%; margin: 0; background: var(--surface-alt); }
   /* same 32px circle, 44px to tap */
   .panel-close { width: 44px; height: 44px; padding: 6px; margin: -12px -10px -12px -6px; background-clip: content-box; }
   .panel-close:focus-visible { outline-offset: -4px; }
-  .legend { top: 12px; right: 12px; bottom: auto; flex-direction: row; flex-wrap: wrap; max-width: calc(100% - 24px); }
-  .legend span:nth-child(n+4) { display: none; }
+  .legend { top: 12px; right: 12px; bottom: auto; flex-direction: row; flex-wrap: wrap; gap: 4px 10px; max-width: calc(100% - 24px); padding: 6px 10px; font-size: 11px; }
 }
 
 /* admin */
