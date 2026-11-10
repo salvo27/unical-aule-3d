@@ -86,13 +86,16 @@ export function vendorFiles(accounts: AccountsMode): Record<string, string> {
   return shipsAdmin(accounts) ? { ...VENDOR, ...ACCOUNT_VENDOR } : { ...VENDOR };
 }
 
-// The map page reaches Supabase only in mode all. In mode admin only /admin* gets the origin:
-// the "!" line drops the policy of /* first, otherwise Cloudflare would send both and the stricter would win.
+// The map page reaches Supabase only in mode all and, in production, allows the Cloudflare analytics beacon.
+// /admin* gets its own policy: the Supabase origin and never a third-party script, so the admin session stays
+// out of reach. The "!" line drops the policy of /* first, otherwise Cloudflare would send both.
 export function renderHeaders(accounts: AccountsMode, supabaseOrigin: string, production: boolean): string {
   const lines = ['/*'];
-  for (const [name, value] of Object.entries(securityHeaders(production, accounts === 'all' ? supabaseOrigin : null))) lines.push(`  ${name}: ${value}`);
+  for (const [name, value] of Object.entries(securityHeaders(production, accounts === 'all' ? supabaseOrigin : null, production))) {
+    lines.push(`  ${name}: ${value}`);
+  }
   lines.push('/vendor/*', '  Cache-Control: public, max-age=86400', '/admin*', '  X-Robots-Tag: noindex');
-  if (accounts === 'admin') lines.push('  ! Content-Security-Policy', `  Content-Security-Policy: ${csp(supabaseOrigin)}`);
+  if (shipsAdmin(accounts)) lines.push('  ! Content-Security-Policy', `  Content-Security-Policy: ${csp(supabaseOrigin)}`);
   if (!lines.every((line) => HEADER_LINE.test(line))) throw new SiteError('headers');
   return `${lines.join('\n')}\n`;
 }

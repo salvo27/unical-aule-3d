@@ -1,8 +1,13 @@
-export function csp(supabaseOrigin: string | null): string {
-  const connect = ["'self'", 'https://tiles.openfreemap.org', supabaseOrigin].filter(Boolean).join(' ');
+// Cloudflare Web Analytics: the beacon script and the address it reports to, only where a page allows it.
+export const ANALYTICS_SCRIPT = 'https://static.cloudflareinsights.com';
+export const ANALYTICS_REPORT = 'https://cloudflareinsights.com';
+
+export function csp(supabaseOrigin: string | null, analytics = false): string {
+  const connect = ["'self'", 'https://tiles.openfreemap.org', supabaseOrigin, analytics ? ANALYTICS_REPORT : null].filter(Boolean).join(' ');
+  const script = ["'self'", analytics ? ANALYTICS_SCRIPT : null].filter(Boolean).join(' ');
   return [
     "default-src 'self'",
-    "script-src 'self'",
+    `script-src ${script}`,
     "style-src 'self'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
@@ -16,9 +21,9 @@ export function csp(supabaseOrigin: string | null): string {
   ].join('; ');
 }
 
-export function securityHeaders(production: boolean, supabaseOrigin: string | null): Record<string, string> {
+export function securityHeaders(production: boolean, supabaseOrigin: string | null, analytics = false): Record<string, string> {
   const headers: Record<string, string> = {
-    'Content-Security-Policy': csp(supabaseOrigin),
+    'Content-Security-Policy': csp(supabaseOrigin, analytics),
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'no-referrer',
     'X-Frame-Options': 'DENY',

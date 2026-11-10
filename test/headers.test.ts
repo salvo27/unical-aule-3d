@@ -52,3 +52,13 @@ test('all 7 security headers, HSTS only in production', () => {
   assert.equal(production['Strict-Transport-Security'], 'max-age=31536000; includeSubDomains');
   assert.equal(production['Content-Security-Policy'], csp(ORIGIN));
 });
+
+test('the analytics beacon is allowed only when asked: its script and its report address, nothing broader', () => {
+  const plain = csp(ORIGIN);
+  assert.ok(!plain.includes('cloudflareinsights'));
+  const withBeacon = csp(null, true);
+  assert.deepEqual(directive(withBeacon, 'script-src'), ["'self'", 'https://static.cloudflareinsights.com']);
+  assert.deepEqual(directive(withBeacon, 'connect-src'), ["'self'", 'https://tiles.openfreemap.org', 'https://cloudflareinsights.com']);
+  assert.ok(!withBeacon.includes('unsafe'));
+  assert.equal(securityHeaders(true, null)['Content-Security-Policy'], csp(null));
+});

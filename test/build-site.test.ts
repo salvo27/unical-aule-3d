@@ -15,14 +15,19 @@ const LOCAL_URL = 'http://127.0.0.1:54321';
 const TILES = "'self' https://tiles.openfreemap.org";
 const MODES: AccountsMode[] = ['off', 'admin', 'all'];
 
-function policy(connect: string): string {
-  return `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src ${connect}; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'`;
+const BEACON = 'https://static.cloudflareinsights.com';
+const REPORT = 'https://cloudflareinsights.com';
+
+function policy(connect: string, analytics = false): string {
+  const script = analytics ? `'self' ${BEACON}` : "'self'";
+  const reach = analytics ? `${connect} ${REPORT}` : connect;
+  return `default-src 'self'; script-src ${script}; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src ${reach}; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'`;
 }
 
 function expected(connect: string, production: boolean, adminConnect: string | null = null): string {
   return [
     '/*',
-    `  Content-Security-Policy: ${policy(connect)}`,
+    `  Content-Security-Policy: ${policy(connect, production)}`,
     '  X-Content-Type-Options: nosniff',
     '  Referrer-Policy: no-referrer',
     '  X-Frame-Options: DENY',
@@ -105,7 +110,7 @@ test('renderHeaders: exact output per accounts mode, production and local', () =
     [ORIGIN, true],
     [LOCAL_URL, false],
   ] as const) {
-    assert.equal(renderHeaders('all', origin, production), expected(`${TILES} ${origin}`, production));
+    assert.equal(renderHeaders('all', origin, production), expected(`${TILES} ${origin}`, production, `${TILES} ${origin}`));
     assert.equal(renderHeaders('admin', origin, production), expected(TILES, production, `${TILES} ${origin}`));
     assert.equal(renderHeaders('off', origin, production), expected(TILES, production));
     assert.ok(!renderHeaders('off', origin, production).includes(origin));
@@ -114,9 +119,9 @@ test('renderHeaders: exact output per accounts mode, production and local', () =
 
 test('renderHeaders: the root block equals securityHeaders entry by entry', () => {
   for (const production of [true, false]) {
-    assert.deepEqual(rootBlock(renderHeaders('all', ORIGIN, production)), Object.entries(securityHeaders(production, ORIGIN)));
+    assert.deepEqual(rootBlock(renderHeaders('all', ORIGIN, production)), Object.entries(securityHeaders(production, ORIGIN, production)));
     for (const mode of ['off', 'admin'] as const) {
-      assert.deepEqual(rootBlock(renderHeaders(mode, ORIGIN, production)), Object.entries(securityHeaders(production, null)));
+      assert.deepEqual(rootBlock(renderHeaders(mode, ORIGIN, production)), Object.entries(securityHeaders(production, null, production)));
     }
   }
 });
@@ -126,9 +131,11 @@ test('_headers as Cloudflare applies it: the map reaches Supabase only in mode a
     const text = renderHeaders(mode, ORIGIN, true);
     for (const path of [...MAP_PATHS, ...ADMIN_PATHS]) {
       const headers = served(text, path);
-      const reaches = mode === 'all' || (mode === 'admin' && ADMIN_PATHS.includes(path));
-      // One policy only: two would both apply and the stricter would win.
-      assert.equal(headers.get('Content-Security-Policy'), csp(reaches ? ORIGIN : null), `${mode} ${path}`);
+      const admin = ADMIN_PATHS.includes(path) && mode !== 'off';
+      // One policy only: two would both apply and the stricter would win. /admin* never allows the analytics beacon.
+      const expectedPolicy = admin ? csp(ORIGIN) : csp(mode === 'all' ? ORIGIN : null, true);
+      assert.equal(headers.get('Content-Security-Policy'), expectedPolicy, `${mode} ${path}`);
+      if (admin) assert.ok(!expectedPolicy.includes('cloudflareinsights'), path);
       for (const [name, value] of Object.entries(securityHeaders(true, null))) {
         if (name !== 'Content-Security-Policy') assert.equal(headers.get(name), value, `${mode} ${path} ${name}`);
       }

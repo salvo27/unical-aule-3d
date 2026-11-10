@@ -17,6 +17,10 @@ Online: https://aule-unical.pages.dev
 - **Aggiornamento automatico:** gli orari si aggiornano da soli più volte al giorno.
 - **Area admin:** riservata agli amministratori, per gestire la configurazione.
 
+## Statistiche
+
+Il sito conta le visite con Cloudflare Web Analytics: statistiche anonime, senza cookie e senza profilazione. L'area admin non le usa.
+
 ## Licenza
 
 Il codice è distribuito con licenza [MIT](LICENSE).
