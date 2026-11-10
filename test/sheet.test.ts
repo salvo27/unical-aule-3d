@@ -59,18 +59,20 @@ test('a redraw of the same view keeps the body scroll; the status refresh redraw
   assert.ok(render);
   assert.match(render[0], /const top = renderedView === v \? panelBody\.scrollTop : 0;/);
   assert.match(render[0], /renderedView = v;\n {2}panelBody\.scrollTop = top;\n\}$/);
-  assert.match(app, /const view = refresh \|\| typing \? state\.view : \{ name: 'search'/);
-  assert.match(app, /if \(!refresh && !typing\) setSheet\('normal'\);/);
+  assert.match(app, /const view = entering \? \{ name: 'search', results: null \} : state\.view;/);
+  assert.match(app, /if \(entering\) \{\n {4}state\.view = view;\n {4}state\.history = \[\];\n {4}setSheet\('normal'\);/);
 });
 
-test('while typing a search the previous results stay, dimmed, until the new ones arrive', () => {
-  assert.match(app, /const typing = !refresh && state\.view\.name === 'search';/);
-  assert.match(app, /view\.pending = true;/);
-  assert.match(app, /view\.pending = false;/);
+test('the search waits for a pause in typing and keeps what the panel shows until the answer arrives', () => {
+  assert.match(app, /const SEARCH_DELAY_MS = 400;/);
+  assert.equal((app.match(/\}, SEARCH_DELAY_MS\),/g) ?? []).length, 2);
+  assert.match(app, /if \(!refresh\) setSearchPending\(true\);\n {2}let results = null;/);
+  assert.match(app, /if \(seq !== searchSeq\) return;\n {2}setSearchPending\(false\);\n {2}if \(state\.view !== startView\) return;/);
   const render = /^function render\(\) \{\n[\s\S]*?\n\}$/m.exec(app);
   assert.ok(render);
-  assert.match(render[0], /panelBody\.classList\.toggle\('is-pending', pending\);/);
-  assert.match(render[0], /panelBody\.setAttribute\('aria-busy', String\(pending\)\);/);
+  assert.match(render[0], /panelBody\.classList\.toggle\('is-pending', searchPending\);/);
+  assert.match(render[0], /panelBody\.setAttribute\('aria-busy', String\(searchPending\)\);/);
+  assert.ok(!/Ricerca in corso/.test(app) || /if \(!v\.results\)/.test(app));
   assert.match(read('public/style.css'), /\.panel-body\.is-pending \{ opacity: 0\.6;/);
 });
 

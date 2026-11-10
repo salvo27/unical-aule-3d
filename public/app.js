@@ -26,6 +26,8 @@ const FLOOR_H = 3.4;
 const GAP = 0.45;
 const BRIDGE_LEVEL = 4;
 const STATUS_REFRESH_MS = 120_000;
+// The search starts this long after the last key, so the panel does not change at every letter.
+const SEARCH_DELAY_MS = 400;
 const STATUS_MAX_AGE_MS = 5 * 60_000;
 const MENSA_PAGE = 'https://www.unical.it/campus/vivere-il-campus/servizio-mensa/';
 const COLORS = {
@@ -610,9 +612,8 @@ function render() {
   for (const c of [...panel.classList]) if (c.startsWith('view-')) panel.classList.remove(c);
   panel.classList.add(`view-${v.name}`);
   panelClose.hidden = !CLOSABLE.has(v.name);
-  const pending = v.name === 'search' && v.pending === true && Boolean(v.results);
-  panelBody.classList.toggle('is-pending', pending);
-  panelBody.setAttribute('aria-busy', String(pending));
+  panelBody.classList.toggle('is-pending', searchPending);
+  panelBody.setAttribute('aria-busy', String(searchPending));
   panelBody.replaceChildren();
   if (state.status && !isFresh()) {
     panelBody.append(el('div', { className: 'notice notice-stale' }, 'Non riesco ad aggiornare i dati: per sicurezza le aule sono mostrate in grigio.'));
@@ -1281,11 +1282,14 @@ function matchPlaces(query) {
 }
 
 let searchSeq = 0;
+let searchPending = false;
 
 async function runSearch(reset = true) {
   const q = state.query.trim();
   const f = state.filters;
   if (!q && !f.free && !f.hours && !f.seats) {
+    searchSeq++;
+    setSearchPending(false);
     if (state.view.name === 'search') {
       state.view = { name: 'home' };
       state.history = [];
@@ -1298,20 +1302,12 @@ async function runSearch(reset = true) {
   if (f.free) params.set('free', '1');
   if (f.hours) params.set('hours', String(f.hours));
   if (f.seats) params.set('seats', String(f.seats));
-  // A refresh redraws the same view, so its scroll and the sheet stay as they are; a new search is a new view.
+  // A refresh redraws the same view, so its scroll and the sheet stay as they are.
   const refresh = !reset && state.view.name === 'search';
-  // While typing, the previous results stay on screen, dimmed, until the new ones arrive: the panel does not jump.
-  const typing = !refresh && state.view.name === 'search';
-  const view = refresh || typing ? state.view : { name: 'search', results: null, error: null, places: [] };
-  view.error = null;
-  view.pending = true;
-  view.places = q ? matchPlaces(q) : [];
-  state.view = view;
-  state.history = [];
-  if (!refresh && !typing) setSheet('normal');
-  render();
-  // Only the latest request counts, also when a refresh and a new search overlap.
+  // Until the answer arrives the panel keeps what it shows (the starting list or the previous results), dimmed.
+  const startView = state.view;
   const seq = ++searchSeq;
+  if (!refresh) setSearchPending(true);
   let results = null;
   let error = null;
   try {
@@ -1319,13 +1315,31 @@ async function runSearch(reset = true) {
   } catch (err) {
     error = err;
   }
+  // Only the latest request counts, and a search never replaces a view the user opened meanwhile.
   if (seq !== searchSeq) return;
-  view.pending = false;
+  setSearchPending(false);
+  if (state.view !== startView) return;
+  const entering = state.view.name !== 'search';
+  const view = entering ? { name: 'search', results: null } : state.view;
   if (error) view.error = error;
-  else view.results = results;
-  if (state.view !== view) return;
-  if (typing) renderedView = null;
+  else {
+    view.error = null;
+    view.results = results;
+  }
+  view.places = q ? matchPlaces(q) : [];
+  if (entering) {
+    state.view = view;
+    state.history = [];
+    setSheet('normal');
+  }
+  if (!refresh) renderedView = null;
   render();
+}
+
+function setSearchPending(on) {
+  searchPending = on;
+  panelBody.classList.toggle('is-pending', on);
+  panelBody.setAttribute('aria-busy', String(on));
 }
 
 function lessonHitRow(hit) {
@@ -1409,7 +1423,7 @@ function bindControls() {
     debounce(() => {
       state.query = input.value;
       runSearch();
-    }, 250),
+    }, SEARCH_DELAY_MS),
   );
   $('search-form').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -1435,7 +1449,7 @@ function bindControls() {
       state.filters.seats = /^\d{1,4}$/.test(raw) && n >= 1 && n <= 2000 ? n : null;
       seats.setAttribute('aria-invalid', String(raw !== '' && state.filters.seats === null));
       runSearch();
-    }, 350),
+    }, SEARCH_DELAY_MS),
   );
 }
 
