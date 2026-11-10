@@ -45,15 +45,22 @@ test('discover follows redirects only inside unical.it', async () => {
     if (url.endsWith('/a')) return response('', { status: 302, headers: { location: '/b' } });
     if (url.endsWith('/b')) return response(`<a href="${PLANNER}${CAL_1}">x</a>`);
     if (url.endsWith('/evil')) return response('', { status: 301, headers: { location: 'https://evil.example/' } });
+    if (url.endsWith('/token')) return response('', { status: 302, headers: { location: '/gAAAAABprova' } });
     return response('', { status: 404 });
   }) as unknown as typeof fetch;
   const out = await discover(
-    [sourceUrl('https://dispes.unical.it/a'), sourceUrl('https://dispes.unical.it/evil'), sourceUrl('https://dispes.unical.it/missing')],
+    [
+      sourceUrl('https://dispes.unical.it/a'),
+      sourceUrl('https://dispes.unical.it/evil'),
+      sourceUrl('https://dispes.unical.it/missing'),
+      sourceUrl('https://dispes.unical.it/token'),
+    ],
     { fetchImpl: fakeFetch },
   );
   assert.deepEqual(out.found.map((f) => f.id), [CAL_1]);
-  assert.deepEqual(out.failures.map((f) => f.failure), ['redirect_blocked', 'http_status']);
+  assert.deepEqual(out.failures.map((f) => f.failure), ['redirect_blocked', 'http_status', 'redirect_blocked']);
   assert.ok(!calls.some((c) => c.includes('evil.example')));
+  assert.ok(!calls.some((c) => c.includes('gAAAAAB')), 'robots.txt disallows *gAAAAAB*');
 });
 
 test('discover refuses non html and oversized pages', async () => {

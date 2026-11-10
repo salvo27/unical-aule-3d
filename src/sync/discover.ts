@@ -135,6 +135,8 @@ async function fetchPage(start: SourceUrl, options: Required<Options>): Promise<
       } catch {
         throw new DiscoveryError('redirect_blocked');
       }
+      // robots.txt of the unical.it hosts: "Disallow: *gAAAAAB*".
+      if (url.includes('gAAAAAB')) throw new DiscoveryError('redirect_blocked');
       continue;
     }
     if (!res.ok) {
