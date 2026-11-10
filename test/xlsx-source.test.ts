@@ -34,9 +34,9 @@ const RAW_CONFIG = {
   semesters: { '1': { first: '2026-09-21', last: '2026-12-19' }, '2': { first: '2027-02-22', last: '2027-06-05' } },
   closedDays: ['2026-12-08', '2027-03-29', '2027-03-30'],
   sheets: [
-    { file: 'LT', sheet: 'I ANNO - Ambiente', year: 1, course: 'INGEGNERIA DI PROVA', label: 'Prova · 1° anno LT' },
-    { file: 'LT', sheet: 'II ANNO - Mare', year: 2, course: 'NAVIGAZIONE DI PROVA', label: 'Prova · 2° anno LT' },
-    { file: 'LM', sheet: '1° LM Ambiente', year: 1, course: 'AMBIENTE DI PROVA', label: 'Prova · 1° anno LM' },
+    { file: 'LT', sheet: 'I ANNO - Ambiente', year: 1, course: 'INGEGNERIA DI PROVA', class: 'L-7', label: 'Prova · 1° anno LT' },
+    { file: 'LT', sheet: 'II ANNO - Mare', year: 2, course: 'NAVIGAZIONE DI PROVA', class: 'L-28 R', label: 'Prova · 2° anno LT' },
+    { file: 'LM', sheet: '1° LM Ambiente', year: 1, course: 'AMBIENTE DI PROVA', class: 'LM-35 R', label: 'Prova · 1° anno LM' },
   ],
   rooms: [
     { alias: 'B', name: 'DIAM B', building: 'Cubo 42B', capacity: 135 },
@@ -314,7 +314,7 @@ test('a weekly sheet becomes dated lessons in Rome time with synthetic ids', asy
   assert.equal(first.start, Date.parse('2026-11-09T07:30:00Z'));
   assert.deepEqual(first.teachers, [], 'teacher names of the legend are not kept');
   assert.equal(JSON.stringify(d.parsed).toLowerCase().includes('rossi'), false);
-  assert.deepEqual(first.courses, ['INGEGNERIA DI PROVA']);
+  assert.deepEqual(first.courses, ['INGEGNERIA DI PROVA (triennale)'], 'the course ends with the level of its file');
   assert.equal(first.year, 1);
   assert.equal(first.kind, "ATTIVITA' DIDATTICA");
   assert.equal(first.status, 'active');
@@ -344,7 +344,9 @@ test('a weekly sheet becomes dated lessons in Rome time with synthetic ids', asy
   await again.adapter.prepare();
   assert.deepEqual(data(await outcome(again.adapter, LT1)).parsed.lessons.map((l) => l.id), lessons.map((l) => l.id), 'ids are stable across runs');
   assert.equal(data(await outcome(adapter, LT2)).parsed.lessons.length, 2);
-  assert.equal(data(await outcome(adapter, LM1)).parsed.lessons.length, 2);
+  const master = data(await outcome(adapter, LM1)).parsed.lessons;
+  assert.equal(master.length, 2);
+  assert.ok(master.every((l) => l.courses.join() === 'AMBIENTE DI PROVA (magistrale)'));
 });
 
 test('a room the Planner knows keeps its Planner id and is not repeated, lesson ids do not change', async () => {
@@ -505,6 +507,10 @@ test('one broken sheet fails only its own feed', () => {
   assert.equal(sheetCode(lt1({ header: ['ORARIO', 'GIORNO', ...HEADER.slice(2)] })), 'bad_header');
   assert.equal(sheetCode(lt1({ titleRows: Array.from({ length: 9 }, () => 'PT - Riga di prova') })), 'no_header');
   assert.equal(sheetCode(lt1({ courseRow: 'CORSO DI LAUREA IN ALTRO CORSO' })), 'course_mismatch');
+  assert.equal(sheetCode(lt1({ courseRow: 'CORSO DI LAUREA MAGISTRALE IN INGEGNERIA DI PROVA' })), 'course_mismatch', 'the level must match the file');
+  const lm = parseWorkbook('LM', readXlsx(workbook([roomsSheet(), lm1({ courseRow: 'CORSO DI LAUREA IN AMBIENTE DI PROVA' })])), CONFIG);
+  const lmSheet = lm.sheets.get(LM1.ref);
+  assert.ok(lmSheet && 'failure' in lmSheet && lmSheet.failure === 'course_mismatch');
   assert.equal(sheetCode(lt1({ yearRow: '2° anno - I semestre' })), 'year_mismatch');
   assert.equal(sheetCode(lt1({ yearRow: null })), 'no_semester');
   assert.equal(sheetCode(lt1({ titleRows: ['Una riga inattesa'] })), 'unexpected_title_row');
@@ -831,6 +837,14 @@ test('the configuration is validated before any request', () => {
   fails({ sheets: [{ ...sheet, sheet: '1° LM Ambiente-OK', file: 'LM' }] }, 'sheet_name');
   fails({ sheets: [{ ...sheet, year: 2 }] }, 'sheet_year');
   fails({ sheets: [{ ...sheet, course: 'Ingegneria' }] }, 'sheet_course');
+  fails({ sheets: [{ ...sheet, course: 'A'.repeat(189) }] }, 'sheet_course');
+  fails({ sheets: [{ ...sheet, class: undefined }] }, 'sheet_class');
+  fails({ sheets: [{ ...sheet, class: 'LM-35' }] }, 'sheet_class');
+  fails({ sheets: [{ ...sheet, class: 'L-7 c.u.' }] }, 'sheet_class');
+  fails({ sheets: [{ ...sheet, class: 'l-7' }] }, 'sheet_class');
+  fails({ sheets: [{ ...RAW_CONFIG.sheets[2]!, class: 'L-7' }] }, 'sheet_class');
+  fails({ sheets: [{ ...RAW_CONFIG.sheets[2]!, class: 'LMG/01' }] }, 'sheet_class');
+  assert.equal(parseDiamConfig({ ...RAW_CONFIG, sheets: [{ ...sheet, course: 'A'.repeat(188) }] }).sheets[0]!.lessonCourse, `${'A'.repeat(188)} (triennale)`);
   fails({ sheets: [{ ...sheet, label: 'x'.repeat(161) }] }, 'sheet_label');
   fails({ sheets: [{ ...sheet, label: ' Prova' }] }, 'sheet_label');
   fails({ sheets: [sheet, { ...sheet, sheet: 'I ANNO - AMBIENTE' }] }, 'sheet_duplicate');
@@ -859,6 +873,7 @@ test('config/diam.json is valid, its rooms are on the map and the migration equa
     ],
   );
   for (const s of config.sheets) assert.equal(s.id, feedId('xlsx', s.ref));
+  for (const s of config.sheets) assert.equal(s.lessonCourse, `${s.course} (${s.file === 'LT' ? 'triennale' : 'magistrale'})`);
   const campus = await loadCampus(fileURLToPath(new URL('public/data/campus.geojson', ROOT)));
   checkBuildings(config, campus.keys);
   assert.throws(() => checkBuildings(config, new Set(['cubo-42b'])), (e) => e instanceof DiamConfigError);

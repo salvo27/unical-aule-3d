@@ -26,13 +26,23 @@ Questi dati non sono coperti dalla licenza MIT.
 
 ## Orari del DIAm: `config/diam.json` e `supabase/migrations/20261110090500_xlsx_feeds.sql`
 
-Date dei semestri, giorni senza lezioni, nomi dei fogli, tabella delle aule e indirizzo della pagina indice, presi dalle pagine pubbliche e dai file Excel del Dipartimento di Ingegneria dell'Ambiente (DIAm) dell'Università della Calabria. I diritti restano all'Università della Calabria.
+Date dei semestri, giorni senza lezioni, nomi dei fogli, nomi e classi di laurea dei corsi, tabella delle aule e indirizzo della pagina indice, presi dalle pagine pubbliche e dai file Excel del Dipartimento di Ingegneria dell'Ambiente (DIAm) dell'Università della Calabria. I diritti restano all'Università della Calabria.
 
 I file Excel non vengono ridistribuiti: non sono nel repository e l'app non li serve. I test usano file inventati. Fonte degli orari: Dipartimento di Ingegneria dell'Ambiente, Università della Calabria, pagina "Orario delle lezioni" (<https://diam.unical.it/didattica/iscriversi-studiare-laurearsi/orario-delle-lezioni/>). Uso non commerciale, citando la fonte, come chiedono le note legali del portale dell'Ateneo.
 
+## Orari di DISCAG e DiSU: `config/pdf.json` e `supabase/migrations/20261110091000_pdf_feeds.sql`
+
+Date dei semestri, giorni senza lezioni, codici, nomi e classi di laurea dei corsi, nomi dei file, tabelle delle aule e indirizzi delle pagine da cui partono i download, presi dalle pagine pubbliche e dai PDF degli orari del Dipartimento di Scienze Aziendali e Giuridiche (DISCAG) e del Dipartimento di Studi Umanistici (DiSU) dell'Università della Calabria. I diritti restano all'Università della Calabria.
+
+I PDF non vengono ridistribuiti: non sono nel repository e l'app non li serve. I test usano pagine inventate. Fonti degli orari: Dipartimento di Scienze Aziendali e Giuridiche, Università della Calabria, notizia "Orario delle lezioni" (<https://discag.unical.it/contents/news/view/4734-orario-delle-lezioni/>); Dipartimento di Studi Umanistici, Università della Calabria, pagina "Orario lezioni" (<https://disu.unical.it/didattica/offerta-formativa/orario-lezioni/>). Uso non commerciale, citando la fonte, come chiedono le note legali del portale dell'Ateneo.
+
+## Piani delle aule: `supabase/migrations/20261110091200_room_floors.sql`
+
+Piani di alcune aule, presi dalle pagine pubbliche "Strutture" e dalle piantine dei dipartimenti dell'Università della Calabria. I diritti restano all'Università della Calabria e questi dati non sono coperti dalla licenza MIT.
+
 ## Dati scaricati quando l'app gira
 
-Gli orari delle lezioni vengono scaricati da GitHub Actions dai calendari pubblici del University Planner e dai file Excel del DIAm, e restano nel database Supabase: mai nel repository, nei log o negli artifact dei workflow. I log contengono solo eventi, id, conteggi e codici. Degli impegni che non sono lezioni (prenotazioni, esami, riunioni) si salvano solo il tipo e l'orario. I dati restano dell'Università della Calabria.
+Gli orari delle lezioni vengono scaricati da GitHub Actions dai calendari pubblici del University Planner, dai file Excel del DIAm e dai PDF di DISCAG e DiSU, e restano nel database Supabase: mai nel repository, nei log o negli artifact dei workflow. I log contengono solo eventi, id, conteggi e codici. Degli impegni che non sono lezioni (prenotazioni, esami, riunioni) si salvano solo il tipo e l'orario. I nomi dei docenti non vengono salvati. I dati restano dell'Università della Calabria.
 
 ## `public/fonts/`
 

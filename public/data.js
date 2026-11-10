@@ -74,6 +74,7 @@ export const admin = Object.freeze({
   removeCalendar: (id) => rpc('admin_remove_calendar', { p_id: id }),
   setSources: (urls) => rpc('admin_set_sources', { p_urls: urls }),
   setRoomFloor: (roomId, floor) => rpc('admin_set_room_floor', { p_room_id: roomId, p_floor: floor }),
+  setRoomBridge: (roomId, bridge) => rpc('admin_set_room_bridge', { p_room_id: roomId, p_bridge: bridge }),
   setBuildingShape: (key, floors, baseLevel) => rpc('admin_set_building_shape', { p_key: key, p_floors: floors, p_base_level: baseLevel }),
   linkBuilding: (name, key) => rpc('admin_link_building', { p_name: name.trim(), p_key: key }),
 });

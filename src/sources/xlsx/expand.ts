@@ -121,7 +121,7 @@ export function expandTemplate(template: Template, sheet: DiamSheet, config: Dia
         end,
         status: 'active',
         kind: LESSON_KIND,
-        courses: [sheet.course],
+        courses: [sheet.lessonCourse],
         year: sheet.year,
         teachers,
         roomIds,

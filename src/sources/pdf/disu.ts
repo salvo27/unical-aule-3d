@@ -4,6 +4,7 @@
 import { buildingKey, roomNameKey } from '../../domain/building.js';
 import { feedId, roomMatchKey, syntheticRoomId } from '../../domain/ids.js';
 import { isoDay, sourceUrl, type CalendarId, type Label, type SourceUrl } from '../../domain/primitives.js';
+import { courseWithLevel, type DegreeLevel } from '../level.js';
 import type { FetchContext } from '../types.js';
 import { anchorsOf, getPage, htmlText } from './client.js';
 import { pdfCode, PdfError, sourceFailure, type PdfCode } from './codes.js';
@@ -23,6 +24,7 @@ import { logFindings, pdfFiles, type ParsedProfile, type PdfProfile, type Profil
 import { norm } from './text.js';
 
 export type Level = 'LT' | 'LM';
+const DEGREE: Readonly<Record<Level, DegreeLevel>> = { LT: 'triennale', LM: 'magistrale' };
 
 export interface DisuFeed {
   ref: string;
@@ -30,6 +32,7 @@ export interface DisuFeed {
   label: Label;
   file: RegExp;
   level: Level;
+  degree: DegreeLevel;
   header: string;
   duration: number;
   course: string;
@@ -101,19 +104,25 @@ function feedOf(value: unknown, prefix: string): DisuFeed {
   if (typeof duration !== 'number' || !Number.isInteger(duration) || duration < 1 || duration > 6) throw new PdfConfigError('feed_duration');
   const course = plain(value.course, 200, 'feed_course');
   if (norm(course) !== course) throw new PdfConfigError('feed_course');
+  const feedLevel = level(value.level, 'feed_level');
+  const degree = DEGREE[feedLevel];
+  if (courseWithLevel(course, degree) === null) throw new PdfConfigError('feed_course');
   if (!Array.isArray(value.grids) || value.grids.length < 1 || value.grids.length > 8) throw new PdfConfigError('feed_grids');
   const grids = value.grids.map((g) => gridOf(g, duration));
   const gridKeys = grids.map((g) => `${g.year}|${norm(g.curriculum ?? '')}`);
   if (new Set(gridKeys).size !== gridKeys.length) throw new PdfConfigError('feed_grids');
-  // A curriculum grid stores "<course> - <curriculum>", which must fit the 200 characters of a course.
-  if (grids.some((g) => g.curriculum !== null && course.length + 3 + g.curriculum.length > 200)) throw new PdfConfigError('feed_grids');
+  // A curriculum grid stores "<course> - <curriculum> (<level>)", which must fit the 200 characters of a course.
+  if (grids.some((g) => g.curriculum !== null && courseWithLevel(`${course} - ${g.curriculum}`, degree) === null)) {
+    throw new PdfConfigError('feed_grids');
+  }
   return {
     ref,
     id: feedId('pdf', ref),
     label: feedLabel(value.label),
     // The CMS adds a short suffix at every upload: "_XepjXh4", "_3" or nothing.
     file: new RegExp(`^${prefix}${stem}(?:_[A-Za-z0-9]{1,8})?\\.pdf$`),
-    level: level(value.level, 'feed_level'),
+    level: feedLevel,
+    degree,
     header: plain(value.header, 200, 'feed_header'),
     duration,
     course,

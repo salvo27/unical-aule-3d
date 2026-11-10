@@ -4,6 +4,7 @@
 // Fail closed: a changed layout refuses the file, a cell that cannot be placed fails it.
 import { addDays } from '../../availability/time.js';
 import { isoDay, type IsoDay } from '../../domain/primitives.js';
+import { courseWithLevel, type DegreeLevel } from '../level.js';
 import { PdfError, type CellCode, type Finding, type PdfWarning } from './codes.js';
 import type { PdfRoom, Semester, WeeklyEntry } from './expand.js';
 import { cluster, lines, type HRule, type Page, type Rules, type VRule, type Word } from './grid.js';
@@ -98,6 +99,7 @@ export interface DisuLayoutFeed {
   header: string;
   duration: number;
   course: string;
+  degree: DegreeLevel;
   grids: readonly DisuGridSpec[];
 }
 
@@ -818,8 +820,9 @@ export function readDisuFile(pages: readonly Page[], feed: DisuLayoutFeed, rooms
   const grids: DisuGridInfo[] = layout.grids.map((g, i) => {
     const spec = expected.get(found[i]!);
     if (!spec) warnings.push({ code: 'grid_extra', where: `p${g.page}g${g.index}` });
-    // Course and curriculum come from the configuration, never from the text of the file.
-    return { index: g.index, year: g.year, course: spec?.curriculum ? `${feed.course} - ${spec.curriculum}` : feed.course };
+    // Course, curriculum and level come from the configuration, never from the text of the file.
+    const course = spec?.curriculum ? `${feed.course} - ${spec.curriculum}` : feed.course;
+    return { index: g.index, year: g.year, course: courseWithLevel(course, feed.degree) ?? course };
   });
   const shortOf = (title: string) => {
     const k = key(title.split(/\s+[\u2013-]\s+/)[0] ?? '');

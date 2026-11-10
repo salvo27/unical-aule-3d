@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(136);
+select plan(158);
 
 -- Runs one statement as a user (null = anon). Result as text, 'ok' for void, or '!<sqlstate>' with the closed code.
 create function pg_temp.as_user(p_user text, q text)
@@ -93,16 +93,17 @@ insert into admin_calls (q) values
   ('select public.admin_remove_calendar(''0a0a0a0a0a0a0a0a0a0a0a09'')'),
   ('select public.admin_set_sources(array[''https://dip.unical.it/x''])'),
   ('select public.admin_set_room_floor(''aaaaaaaaaaaaaaaaaaaaaaaa'', 1)'),
+  ('select public.admin_set_room_bridge(''aaaaaaaaaaaaaaaaaaaaaaaa'', ''coperto'')'),
   ('select public.admin_set_building_shape(''prova-a'', 3, 0)'),
   ('select public.admin_link_building(''Polo'', ''prova-a'')'),
   ('select public.admin_request_sync()'),
   ('select public.admin_request_discover()');
-select is(array(select pg_temp.as_user(null, q) from admin_calls order by q), array_fill('!42501'::text, array[11]),
+select is(array(select pg_temp.as_user(null, q) from admin_calls order by q), array_fill('!42501'::text, array[12]),
   'anon cannot execute any admin function');
 select is(array(select pg_temp.as_user('70000000-0000-0000-0000-000000000004', q) from admin_calls order by q),
-  array_fill('!42501 forbidden'::text, array[11]), 'a student gets forbidden from every admin function');
+  array_fill('!42501 forbidden'::text, array[12]), 'a student gets forbidden from every admin function');
 select is(array(select pg_temp.as_user('70000000-0000-0000-0000-000000000003', q) from admin_calls order by q),
-  array_fill('!42501 forbidden'::text, array[11]), 'a moderator gets forbidden from every admin function');
+  array_fill('!42501 forbidden'::text, array[12]), 'a moderator gets forbidden from every admin function');
 select is((select count(*)::int from aule.calendars where id = '0a0a0a0a0a0a0a0a0a0a0a09' or (source = 'portal' and ref = '0880')), 0, 'refused calls change nothing');
 select is(pg_temp.adm($$select aule.config_overview()$$), '!42501', 'aule.config_* are not reachable through the API, not even by an admin');
 select is(pg_temp.as_user('70000000-0000-0000-0000-000000000004', $$select aule.config_add_calendar('0a0a0a0a0a0a0a0a0a0a0a09', 'Prova', null)$$), '!42501',
@@ -156,9 +157,11 @@ select results_eq(
 select is(pg_temp.adm($$select public.admin_add_feed('portal', '0880', 'Ancora')$$), '!P0001 calendar_exists', 'the same feed twice is refused');
 select is(pg_temp.adm($$select public.admin_add_feed('portal', '08 80', 'Corso')$$), '!P0001 feed_ref', 'a bad portal code gives feed_ref');
 select is(pg_temp.adm($$select public.admin_add_feed('portal', 'abc', 'Corso')$$), '!P0001 feed_ref', 'a lower case portal code gives feed_ref');
-select is(pg_temp.adm($$select public.admin_add_feed('pdf', 'https://www.unical.it/orario-di-prova.pdf', 'Orario PDF di prova')$$), 'ok',
-  'a PDF feed takes a canonical unical URL');
-select is(pg_temp.adm($$select public.admin_add_feed('pdf', 'https://example.com/orario.pdf', 'Orario')$$), '!P0001 feed_ref', 'a PDF feed elsewhere gives feed_ref');
+select is(pg_temp.adm($$select public.admin_add_feed('pdf', 'https://www.unical.it/orario-di-prova.pdf', 'Orario PDF di prova')$$),
+  '!P0001 invalid', 'admins cannot add a pdf feed: it comes only from its generated migration');
+select throws_ok($$select aule.config_add_feed('pdf', 'https://www.unical.it/orario-di-prova.pdf', 'Orario PDF di prova', null)$$,
+  'P0001', 'invalid', 'a pdf feed cannot be added from the SQL editor either');
+select is(pg_temp.adm($$select public.admin_add_feed('pdf', 'prova:0002', 'Orario')$$), '!P0001 invalid', 'whatever its ref');
 select is(pg_temp.adm($$select public.admin_add_feed('planner', '0880', 'Corso')$$), '!P0001 invalid', 'Planner calendars use admin_add_calendar');
 select is(pg_temp.adm($$select public.admin_add_feed('portal', '0881', ' Corso')$$), '!P0001 label', 'feeds follow the label rules');
 
@@ -194,19 +197,25 @@ select throws_ok(format('select aule.config_remove_calendar(%L)', aule.synthetic
 select results_eq(
   format('select active from aule.calendars where id = %L', aule.synthetic_id('fffd', 'dimes|https://orario.prova.unical.it/')),
   $$values (false)$$, 'the dimes feed is still there, inactive');
--- So do pdf feeds whose ref is not a URL; a pdf feed added by an admin can still be removed.
-insert into aule.calendars (id, source, ref, label)
-values (aule.synthetic_id('fffd', 'pdf|prova:0001'), 'pdf', 'prova:0001', 'Orario PDF di prova');
+-- So do pdf feeds, whatever their ref.
+insert into aule.calendars (id, source, ref, label) values
+  (aule.synthetic_id('fffd', 'pdf|prova:0001'), 'pdf', 'prova:0001', 'Orario PDF di prova'),
+  (aule.synthetic_id('fffd', 'pdf|https://www.unical.it/orario-di-prova.pdf'), 'pdf', 'https://www.unical.it/orario-di-prova.pdf',
+    'Orario PDF con indirizzo');
 select is(pg_temp.adm(format('select public.admin_remove_calendar(%L)', aule.synthetic_id('fffd', 'pdf|prova:0001'))),
-  '!P0001 invalid', 'admins cannot remove a pdf feed of a generated migration');
+  '!P0001 invalid', 'admins cannot remove a pdf feed, only deactivate it');
 select throws_ok(format('select aule.config_remove_calendar(%L)', aule.synthetic_id('fffd', 'pdf|prova:0001')),
   'P0001', 'invalid', 'not even from the SQL editor');
 select is(pg_temp.adm(format('select public.admin_remove_calendar(%L)',
     aule.synthetic_id('fffd', 'pdf|https://www.unical.it/orario-di-prova.pdf'))),
-  'ok', 'a pdf feed added by an admin can be removed');
+  '!P0001 invalid', 'a pdf feed with a URL ref cannot be removed either');
+select throws_ok(format('select aule.config_remove_calendar(%L)', aule.synthetic_id('fffd', 'pdf|https://www.unical.it/orario-di-prova.pdf')),
+  'P0001', 'invalid', 'not even from the SQL editor');
+select is(pg_temp.adm(format('select public.admin_set_calendar_active(%L, false)', aule.synthetic_id('fffd', 'pdf|prova:0001'))),
+  'ok', 'an existing pdf feed can be deactivated');
 select results_eq(
-  $$select ref from aule.calendars where source = 'pdf' and ref like '%prova%' order by ref$$,
-  $$values ('prova:0001'::text)$$, 'only the generated pdf feed is left');
+  $$select ref, active from aule.calendars where source = 'pdf' and ref like '%prova%' order by ref$$,
+  $$values ('https://www.unical.it/orario-di-prova.pdf'::text, true), ('prova:0001'::text, false)$$, 'both pdf feeds are still there');
 
 -- Sources: only canonical https pages on unical.it, duplicates removed, at most 60.
 select is(pg_temp.adm($$select public.admin_set_sources(array['https://dip.unical.it/a', 'https://dip.unical.it/b', 'https://dip.unical.it/a'])$$), 'ok',
@@ -238,6 +247,29 @@ select is(pg_temp.adm($$select public.admin_set_room_floor('aaaaaaaaaaaaaaaaaaaa
 select is(pg_temp.adm($$select public.admin_set_room_floor('bbbbbbbbbbbbbbbbbbbbbbbb', 1)$$), '!P0001 not_found', 'a room not in the timetable is not found');
 select is(pg_temp.adm($$select public.admin_set_room_floor('x', 1)$$), '!P0001 invalid', 'a bad room id is invalid');
 
+-- Room bridges: a bridge replaces the floor number and the other way round.
+select is(pg_temp.adm($$select public.admin_set_room_bridge('aaaaaaaaaaaaaaaaaaaaaaaa', 'scoperto')$$), 'ok', 'admins put a room on a bridge');
+select results_eq($$select floor, bridge, floor_source from aule.room_view where id = 'aaaaaaaaaaaaaaaaaaaaaaaa'$$,
+  $$values (null::integer, 'scoperto'::text, 'admin'::text)$$, 'the bridge is used at once, without a floor');
+select is((select updated_by::text from aule.room_floors where room_id = 'aaaaaaaaaaaaaaaaaaaaaaaa'), '70000000-0000-0000-0000-000000000001',
+  'the bridge records who set it');
+select is(pg_temp.adm($$select public.admin_set_room_floor('aaaaaaaaaaaaaaaaaaaaaaaa', 3)$$), 'ok', 'a floor number replaces the bridge');
+select results_eq($$select floor::integer, bridge from aule.room_floors where room_id = 'aaaaaaaaaaaaaaaaaaaaaaaa'$$,
+  $$values (3, null::text)$$, 'the bridge is gone');
+select is(pg_temp.adm($$select public.admin_set_room_bridge('aaaaaaaaaaaaaaaaaaaaaaaa', 'coperto')$$), 'ok', 'a bridge replaces the floor number');
+select results_eq($$select floor::integer, bridge from aule.room_floors where room_id = 'aaaaaaaaaaaaaaaaaaaaaaaa'$$,
+  $$values (null::integer, 'coperto'::text)$$, 'the floor number is gone');
+select is(pg_temp.adm($$select public.admin_set_room_bridge('aaaaaaaaaaaaaaaaaaaaaaaa', null)$$), 'ok', 'admins clear a room bridge');
+select is((select count(*)::int from aule.room_floors), 0, 'the bridge row is gone');
+select is(pg_temp.adm($$select public.admin_set_room_bridge('aaaaaaaaaaaaaaaaaaaaaaaa', 'Coperto')$$), '!P0001 invalid',
+  'a bridge is coperto or scoperto, in lower case');
+select is(pg_temp.adm($$select public.admin_set_room_bridge('aaaaaaaaaaaaaaaaaaaaaaaa', '')$$), '!P0001 invalid', 'an empty bridge is invalid');
+select is(pg_temp.adm($$select public.admin_set_room_bridge('bbbbbbbbbbbbbbbbbbbbbbbb', 'coperto')$$), '!P0001 not_found',
+  'a room not in the timetable is not found');
+select is(pg_temp.adm($$select public.admin_set_room_bridge('x', 'coperto')$$), '!P0001 invalid', 'a bad room id is invalid for a bridge too');
+select is(pg_temp.as_user('70000000-0000-0000-0000-000000000004', $$select aule.config_set_room_bridge('aaaaaaaaaaaaaaaaaaaaaaaa', 'coperto', null)$$),
+  '!42501', 'authenticated cannot execute aule.config_set_room_bridge');
+
 -- Building shapes and links only for campus buildings.
 select is(pg_temp.adm($$select public.admin_set_building_shape('prova-a', 6, 1)$$), 'ok', 'admins set a building shape');
 select is(pg_temp.adm($$select public.admin_set_building_shape('cubo-99z', 6, 1)$$), '!P0001 unknown_building', 'a building off the map is refused');
@@ -258,6 +290,10 @@ select throws_ok($$insert into aule.calendars (id, source, ref, label) values ('
   'a feed id must be the synthetic id of its reference');
 select throws_ok($$insert into aule.sources (position, url) values (60, 'http://dip.unical.it/a')$$, '23514', null, 'a non canonical source is rejected');
 select throws_ok($$insert into aule.room_floors (room_id, floor) values ('aaaaaaaaaaaaaaaaaaaaaaaa', 99)$$, '23514', null, 'floor 99 is rejected');
+select throws_ok($$insert into aule.room_floors (room_id, bridge) values ('aaaaaaaaaaaaaaaaaaaaaaaa', 'pedonale')$$, '23514', null,
+  'a bridge other than coperto and scoperto is rejected');
+select throws_ok($$insert into aule.room_floors (room_id, floor, bridge) values ('aaaaaaaaaaaaaaaaaaaaaaaa', 4, 'coperto')$$, '23514', null,
+  'a floor and a bridge together are rejected');
 select throws_ok($$insert into aule.building_shapes (key, floors, base_level) values ('prova-b', 0, 0)$$, '23514', null, 'zero floors are rejected');
 
 -- Limits hold.
@@ -282,6 +318,8 @@ select 'e' || lpad(to_hex(g), 23, '0'), 'R' || g, '', 'Cubo di prova', null, nul
 from generate_series(1, 3000) g;
 insert into aule.room_floors (room_id, floor) select 'e' || lpad(to_hex(g), 23, '0'), 1 from generate_series(1, 3000) g;
 select is(pg_temp.adm($$select public.admin_set_room_floor('aaaaaaaaaaaaaaaaaaaaaaaa', 1)$$), '!P0001 too_many_rooms', 'the 3001st room floor is refused');
+select is(pg_temp.adm($$select public.admin_set_room_bridge('aaaaaaaaaaaaaaaaaaaaaaaa', 'coperto')$$), '!P0001 too_many_rooms',
+  'so is the 3001st room bridge');
 delete from aule.room_floors;
 delete from aule.rooms where id like 'eeee%';
 
@@ -347,7 +385,7 @@ select is((select pg_temp.keys(c) from ov, jsonb_array_elements(j -> 'calendars'
   array['active', 'addedAt', 'fetchedAt', 'id', 'label', 'ref', 'run', 'source'], 'calendar keys');
 select is((select pg_temp.keys(j -> 'proposals') from ov), array['at', 'failures', 'found', 'items', 'startedAt'], 'proposal keys');
 select is((select pg_temp.keys(r) from ov, jsonb_array_elements(j -> 'rooms') r where r ->> 'id' = 'a4a4a4a4a4a4a4a4a4a4a4a4'),
-  array['buildingKey', 'buildingName', 'capacity', 'floor', 'floorSource', 'id', 'name'], 'room keys');
+  array['bridge', 'buildingKey', 'buildingName', 'capacity', 'floor', 'floorSource', 'id', 'name'], 'room keys');
 select is((select pg_temp.keys(c) from ov, jsonb_array_elements(j -> 'campus') c where c ->> 'key' = 'prova-a'), array['key', 'name'], 'campus keys');
 select is((select (j #> '{sync,lastRun}') - 'id' - 'startedAt' - 'finishedAt' from ov),
   '{"trigger": "schedule", "state": "aborted", "outcome": "failed", "failure": "implausible", "ok": 3, "failed": 0}'::jsonb,
@@ -388,6 +426,10 @@ select is(pg_temp.adm(format('select public.admin_link_building(%L, %L)', repeat
 select is(pg_temp.adm(format('select public.admin_add_feed(%L, %L, %L)', repeat('p', 10240), '0880', 'Corso')), '!P0001 invalid', 'a 10 KB source gives invalid');
 select is(pg_temp.adm(format('select public.admin_set_building_shape(%L, 3, 0)', repeat('a', 10240))), '!P0001 unknown_building',
   'a 10 KB building key gives unknown_building');
+select is(pg_temp.adm(format('select public.admin_set_room_bridge(%L, %L)', 'aaaaaaaaaaaaaaaaaaaaaaaa', repeat('x', 10240))), '!P0001 invalid',
+  'a 10 KB bridge gives invalid');
+select is(pg_temp.adm(format('select public.admin_set_room_bridge(%L, %L)', repeat('a', 10240), 'coperto')), '!P0001 invalid',
+  'a 10 KB room id gives invalid');
 
 select * from finish();
 rollback;

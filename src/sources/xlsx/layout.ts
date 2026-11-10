@@ -219,6 +219,7 @@ function parseGrid(sheet: Sheet, spec: DiamSheet, config: DiamConfig): { templat
 
   // Rows above the header: course, academic year, "N° anno - I semestre", curricula.
   let course = '';
+  let master = false;
   let academicYear = '';
   let year = 0;
   let semester: 0 | 1 | 2 = 0;
@@ -228,8 +229,10 @@ function parseGrid(sheet: Sheet, spec: DiamSheet, config: DiamConfig): { templat
     const t = norm(v.text(r, 1));
     if (!t) continue;
     let m: RegExpExecArray | null;
-    if ((m = /^CORSO DI LAUREA (?:MAGISTRALE )?IN (.+)$/.exec(t))) course = m[1] ?? '';
-    else if ((m = /^A\.A\. (\d{4})-(\d{4})$/.exec(t))) academicYear = `${m[1]}-${m[2]}`;
+    if ((m = /^CORSO DI LAUREA (MAGISTRALE )?IN (.+)$/.exec(t))) {
+      master = m[1] !== undefined;
+      course = m[2] ?? '';
+    } else if ((m = /^A\.A\. (\d{4})-(\d{4})$/.exec(t))) academicYear = `${m[1]}-${m[2]}`;
     else if ((m = /^(\d)\u00b0 ANNO - (I|II) SEMESTRE$/.exec(t))) {
       year = Number(m[1]);
       semester = m[2] === 'I' ? 1 : 2;
@@ -239,7 +242,8 @@ function parseGrid(sheet: Sheet, spec: DiamSheet, config: DiamConfig): { templat
       if (m[1]) codes.add(m[1]);
     } else throw new XlsxError('unexpected_title_row');
   }
-  if (course !== spec.course) throw new XlsxError('course_mismatch');
+  // The level shown on the lessons comes from the file kind, so the header must agree with it.
+  if (course !== spec.course || master !== (spec.file === 'LM')) throw new XlsxError('course_mismatch');
   if (academicYear !== config.academicYear) throw new XlsxError('academic_year_mismatch');
   if (semester === 0) throw new XlsxError('no_semester');
   if (year !== spec.year) throw new XlsxError('year_mismatch');

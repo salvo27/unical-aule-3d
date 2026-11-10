@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(34);
+select plan(36);
 
 -- Runs one query as aule_reader. Result as text, or '!<sqlstate>' with the message of P0001 errors.
 create function pg_temp.rd(q text)
@@ -121,7 +121,8 @@ select is(pg_temp.ids(pg_temp.s('analisi'), 'lessons', 'lessonId'), array['eeeee
 select is(pg_temp.s('analisi')::jsonb -> 'lessons' -> 0,
   jsonb_build_object('lessonId', 'eeeeeeeeeeeeeeeeeeeeee01', 'title', 'ANALISI MATEMATICA I', 'start', aule.ms(pg_temp.h(1)),
     'end', aule.ms(pg_temp.h(3)), 'teachers', jsonb_build_array('Anna Bianchi'), 'roomId', 'aaaaaaaaaaaaaaaaaaaaaa01',
-    'roomName', 'MT1', 'buildingName', 'Cubo 30B', 'buildingKey', 'cubo-30b', 'floor', null),
+    'roomName', 'MT1', 'buildingName', 'Cubo 30B', 'buildingKey', 'cubo-30b', 'floor', null,
+    'bridge', null),
   'a lesson hit carries the room labels');
 select is(pg_temp.ids(pg_temp.s('verdi'), 'lessons', 'lessonId'), array['eeeeeeeeeeeeeeeeeeeeee04'], 'teacher search finds the lesson');
 select is(pg_temp.ids(pg_temp.s('politiche'), 'lessons', 'lessonId'), array['eeeeeeeeeeeeeeeeeeeeeec2', 'eeeeeeeeeeeeeeeeeeeeeec1'],
@@ -132,7 +133,8 @@ select is(pg_temp.s('teorie')::jsonb -> 'lessons' -> 0 -> 'teachers', '[]'::json
 select is(pg_temp.s('fisica', true)::jsonb,
   jsonb_build_object('rooms', '[]'::jsonb, 'lessons', jsonb_build_array(jsonb_build_object('lessonId', 'eeeeeeeeeeeeeeeeeeeeee04',
     'title', 'FISICA', 'start', aule.ms(pg_temp.h(2)), 'end', aule.ms(pg_temp.h(4)), 'teachers', jsonb_build_array('Carlo Verdi'),
-    'roomId', 'aaaaaaaaaaaaaaaaaaaaaa02', 'roomName', 'MT13', 'buildingName', 'Cubo 30B', 'buildingKey', 'cubo-30b', 'floor', null))),
+    'roomId', 'aaaaaaaaaaaaaaaaaaaaaa02', 'roomName', 'MT13', 'buildingName', 'Cubo 30B', 'buildingKey', 'cubo-30b', 'floor', null,
+    'bridge', null))),
   'a filter with a query still returns lesson hits in busy rooms');
 select is(pg_temp.s('%')::jsonb, '{"rooms": [], "lessons": []}'::jsonb, 'a percent sign is a plain character, not a wildcard');
 select is(pg_temp.s('_')::jsonb, '{"rooms": [], "lessons": []}'::jsonb, 'an underscore is a plain character, not a wildcard');
@@ -162,6 +164,19 @@ insert into public.room_requests (room_id, kind, starts_at, ends_at, status, cre
   ('aaaaaaaaaaaaaaaaaaaaaa01', 'lesson_not_held', pg_temp.h(1), pg_temp.h(3), 'approved', '60000000-0000-0000-0000-000000000001', now(),
     'eeeeeeeeeeeeeeeeeeeeee11');
 select is(pg_temp.ids(pg_temp.s('analisi'), 'lessons', 'lessonId'), array['eeeeeeeeeeeeeeeeeeeeee12'], 'lessons confirmed as not held are not proposed');
+
+-- A room on a bridge has no floor, in room and lesson hits alike.
+insert into aule.room_floors (room_id, bridge) values ('aaaaaaaaaaaaaaaaaaaaaa01', 'coperto');
+select is(
+  (select jsonb_build_object('floor', e -> 'floor', 'bridge', e -> 'bridge')
+    from jsonb_array_elements(pg_temp.s('analisi')::jsonb -> 'lessons') e),
+  '{"floor": null, "bridge": "coperto"}'::jsonb, 'a lesson hit in a bridge room carries the bridge');
+select is(
+  (select jsonb_build_object('floor', e -> 'floor', 'bridge', e -> 'bridge')
+    from jsonb_array_elements(pg_temp.s('mt1')::jsonb -> 'rooms') e
+    where e ->> 'id' = 'aaaaaaaaaaaaaaaaaaaaaa01'),
+  '{"floor": null, "bridge": "coperto"}'::jsonb, 'so does the room hit');
+delete from aule.room_floors;
 
 -- Results are capped.
 do $$ begin

@@ -212,3 +212,18 @@ test('the pieces of a split long event count as one item for the skipped thresho
   assert.equal(of(100, 11, 44), false, '56 events and 11 skipped stay under 20 percent');
   assert.equal(of(5, 11, 99), true, 'never fewer than zero lessons');
 });
+
+test('courses outside the limits of the SQL check are dropped, never the lesson; the level stays searchable', () => {
+  const ten = Array.from({ length: 10 }, (_, i) => `CORSO ${i} (magistrale)`);
+  const payload = buildPayload(
+    { rooms: [room(ROOM_A)], lessons: [lesson({ courses: ['FISICA DI PROVA (triennale)', '', 'C'.repeat(201), ...ten] })], skipped: 0 },
+    FROM,
+    TO,
+  );
+  assert.equal(payload.skipped, 0);
+  assert.equal(payload.lessons.length, 1);
+  const l = payload.lessons[0]!;
+  assert.deepEqual(l.courses, ['FISICA DI PROVA (triennale)', ...ten.slice(0, 9)]);
+  assert.ok(l.courses.every((c) => [...c].length >= 1 && [...c].length <= 200));
+  assert.equal(l.courseText, `fisica fisica di prova (triennale) ${ten.slice(0, 9).join(' ').toLowerCase()}`);
+});

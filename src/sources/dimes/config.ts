@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { buildingKey, roomNameKey } from '../../domain/building.js';
 import { feedId, roomMatchKey } from '../../domain/ids.js';
 import { isoDay, label, sourceUrl, type CalendarId, type IsoDay, type Label, type SourceUrl } from '../../domain/primitives.js';
+import { classLevel, type DegreeLevel } from '../level.js';
 import { normKey } from './text.js';
 
 export class DimesConfigError extends Error {
@@ -72,6 +73,8 @@ export interface DimesConfig {
   externalRooms: ReadonlyMap<string, CanonicalRoom>;
   // Buildings not on the map yet, with the campus key of the building link the owner has to add.
   offMapBuildings: ReadonlyMap<string, string>;
+  // Course code (cds of a class) to the level of its degree class; other codes show no level.
+  levels: ReadonlyMap<string, DegreeLevel>;
 }
 
 const MAX_FILE_BYTES = 100_000;
@@ -80,6 +83,7 @@ const CAMPUS_KEY = /^[a-z0-9-]{1,80}$/;
 const ROOM_KEY = /^[a-z0-9]{1,100}$/;
 const DATA_KEY = /^[A-Za-z][A-Za-z0-9_]{0,39}$/;
 const APP_ROOM = /^[A-Z0-9_]{1,60}$/;
+const COURSE_CODE = /^[A-Z0-9]{4}$/;
 const DAY_MS = 86_400_000;
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -164,7 +168,20 @@ export function parseDimesConfig(raw: unknown): DimesConfig {
   if (!isRecord(raw) || raw.version !== 1) throw new DimesConfigError('version');
   keysOnly(
     raw,
-    ['version', 'url', 'label', 'academicYear', 'semesters', 'yearEnd', 'noLessonDays', 'expected', 'rooms', 'externalRooms', 'offMapBuildings'],
+    [
+      'version',
+      'url',
+      'label',
+      'academicYear',
+      'semesters',
+      'yearEnd',
+      'noLessonDays',
+      'expected',
+      'rooms',
+      'externalRooms',
+      'offMapBuildings',
+      'degreeClasses',
+    ],
     'config',
   );
   const url = check('url', () => sourceUrl(raw.url));
@@ -226,6 +243,14 @@ export function parseDimesConfig(raw: unknown): DimesConfig {
     offMapBuildings.set(building, key);
   }
 
+  if (!isRecord(raw.degreeClasses) || Object.keys(raw.degreeClasses).length > 60) throw new DimesConfigError('degree_classes');
+  const levels = new Map<string, DegreeLevel>();
+  for (const [code, cls] of Object.entries(raw.degreeClasses)) {
+    const level = classLevel(cls);
+    if (!COURSE_CODE.test(code) || level === null) throw new DimesConfigError('degree_classes');
+    levels.set(code, level);
+  }
+
   return {
     url,
     feedId: feedId('dimes', url),
@@ -239,6 +264,7 @@ export function parseDimesConfig(raw: unknown): DimesConfig {
     rooms,
     externalRooms,
     offMapBuildings,
+    levels,
   };
 }
 

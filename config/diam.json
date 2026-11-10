@@ -44,6 +44,7 @@
       "sheet": "I ANNO - Ambiente",
       "year": 1,
       "course": "INGEGNERIA PER L'AMBIENTE E LA SICUREZZA DEL TERRITORIO",
+      "class": "L-7 R",
       "label": "DIAm · Orario 1° anno LT Ingegneria per l'Ambiente e la Sicurezza del Territorio 2026/2027 (xlsx)"
     },
     {
@@ -51,6 +52,7 @@
       "sheet": "I ANNO - Mare",
       "year": 1,
       "course": "TECNOLOGIE DEL MARE E DELLA NAVIGAZIONE",
+      "class": "L-28 R",
       "label": "DIAm · Orario 1° anno LT Tecnologie del Mare e della Navigazione 2026/2027 (xlsx)"
     },
     {
@@ -58,6 +60,7 @@
       "sheet": "II ANNO - Ambiente",
       "year": 2,
       "course": "INGEGNERIA PER L'AMBIENTE E LA SICUREZZA DEL TERRITORIO",
+      "class": "L-7 R",
       "label": "DIAm · Orario 2° anno LT Ingegneria per l'Ambiente e la Sicurezza del Territorio 2026/2027 (xlsx)"
     },
     {
@@ -65,6 +68,7 @@
       "sheet": "II ANNO - Mare",
       "year": 2,
       "course": "TECNOLOGIE DEL MARE E DELLA NAVIGAZIONE",
+      "class": "L-28 R",
       "label": "DIAm · Orario 2° anno LT Tecnologie del Mare e della Navigazione 2026/2027 (xlsx)"
     },
     {
@@ -72,6 +76,7 @@
       "sheet": "III ANNO - Ambiente",
       "year": 3,
       "course": "INGEGNERIA PER L'AMBIENTE E LA SICUREZZA DEL TERRITORIO",
+      "class": "L-7",
       "label": "DIAm · Orario 3° anno LT Ingegneria per l'Ambiente e la Sicurezza del Territorio 2026/2027 (xlsx)"
     },
     {
@@ -79,6 +84,7 @@
       "sheet": "III ANNO - Mare",
       "year": 3,
       "course": "TECNOLOGIE DEL MARE E DELLA NAVIGAZIONE",
+      "class": "L-28",
       "label": "DIAm · Orario 3° anno LT Tecnologie del Mare e della Navigazione 2026/2027 (xlsx)"
     },
     {
@@ -86,6 +92,7 @@
       "sheet": "1° LM Ambiente",
       "year": 1,
       "course": "INGEGNERIA PER L'AMBIENTE E LA SICUREZZA DEL TERRITORIO",
+      "class": "LM-35 R",
       "label": "DIAm · Orario 1° anno LM Ingegneria per l'Ambiente e la Sicurezza del Territorio 2026/2027 (xlsx)"
     },
     {
@@ -93,6 +100,7 @@
       "sheet": "2° LM Ambiente",
       "year": 2,
       "course": "INGEGNERIA PER L'AMBIENTE E LA SICUREZZA DEL TERRITORIO",
+      "class": "LM-35 R",
       "label": "DIAm · Orario 2° anno LM Ingegneria per l'Ambiente e la Sicurezza del Territorio 2026/2027 (xlsx)"
     }
   ],

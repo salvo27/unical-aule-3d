@@ -1,10 +1,12 @@
 // First reader of the parsed page: checks the structure against config/dimes.json and copies only what the map
 // needs. Fields of people never get here, they are dropped while parsing.
+import { courseWithLevel } from '../level.js';
 import { DimesError } from './codes.js';
 import { REQUIRED_KEYS, type DimesConfig, type KeySet, type Semester } from './config.js';
 import { appId, normKey, text } from './text.js';
 
 export interface DClass {
+  // Course name with the level of its degree class.
   course: string | null;
   year: number;
 }
@@ -184,7 +186,9 @@ function readClass(v: unknown, cfg: DimesConfig): [string, DClass] {
   const year = intOrNull(own(r, 'anno'), 1, 6);
   if (typeof cds !== 'string' || !COURSE_CODE.test(cds) || typeof name !== 'string' || year === null) throw shape();
   const full = text(name, 210);
-  return [id(own(r, 'id')), { course: full ? text(full.replace(DEGREE_PREFIX, ''), 200) : null, year }];
+  const course = full ? text(full.replace(DEGREE_PREFIX, ''), 200) : null;
+  const labelled = course ? (courseWithLevel(course, cfg.levels.get(cds) ?? null) ?? course) : null;
+  return [id(own(r, 'id')), { course: labelled, year }];
 }
 
 function readUnit(v: unknown, cfg: DimesConfig): [string, DUnit] {

@@ -3,6 +3,7 @@ import type { ParsedCalendar } from '../planner/parse.js';
 import type { Lesson, RoomInfo } from '../domain/model.js';
 import { buildingKey, roomNameKey } from '../domain/building.js';
 import { normalizeText } from '../domain/text.js';
+import { MAX_COURSE_CHARS } from '../sources/level.js';
 
 export interface PayloadRoom {
   id: string;
@@ -46,6 +47,7 @@ export interface CalendarPayload {
 export const INCLUDE_TEACHERS: boolean = false;
 
 const CAMPUS_KEY = /^[a-z0-9-]{1,80}$/;
+const MAX_COURSES = 10;
 const LONE_SURROGATE = /\p{Cs}/u;
 
 export function roomColumns(room: RoomInfo): Pick<PayloadRoom, 'buildingKeyGuess' | 'roomKey' | 'nameCompact' | 'searchText'> {
@@ -90,8 +92,10 @@ function payloadRoom(room: RoomInfo): PayloadRoom | null {
 }
 
 function payloadLesson(lesson: Lesson, roomIds: string[]): PayloadLesson | null {
-  const columns = lessonColumns(lesson);
-  if (!wellFormed([lesson.title, lesson.kind, ...lesson.courses, ...teachersOf(lesson)])) return null;
+  // A course outside the limits of the SQL check is dropped, never the lesson, so its rooms stay busy.
+  const courses = lesson.courses.filter((c) => within(c, 1, MAX_COURSE_CHARS)).slice(0, MAX_COURSES);
+  const columns = lessonColumns({ ...lesson, courses });
+  if (!wellFormed([lesson.title, lesson.kind, ...courses, ...teachersOf(lesson)])) return null;
   if (!within(columns.titleText, 1, 300) || !within(columns.directText, 1, 2000) || !within(columns.courseText, 1, 5000)) return null;
   return {
     id: lesson.id,
@@ -100,7 +104,7 @@ function payloadLesson(lesson: Lesson, roomIds: string[]): PayloadLesson | null 
     end: lesson.end,
     status: lesson.status,
     kind: lesson.kind,
-    courses: [...lesson.courses],
+    courses,
     year: lesson.year,
     teachers: [...teachersOf(lesson)],
     roomIds,

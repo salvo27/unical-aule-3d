@@ -226,7 +226,8 @@ html, body { height: 100%; margin: 0; background: var(--surface-alt); }
 .lesson:last-child { border-bottom: 0; }
 .lesson-time { font-weight: 600; font-variant-numeric: tabular-nums; }
 .lesson-title { margin-top: 2px; }
-.lesson-meta { color: var(--ink-soft); font-size: 12px; margin-top: 2px; }
+.lesson-meta { color: var(--ink-soft); font-size: 12px; margin-top: 2px; overflow-wrap: break-word; }
+.course-level { white-space: nowrap; }
 .lesson.done { opacity: 0.55; }
 .lesson.cancelled .lesson-title { text-decoration: line-through; }
 .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 6px; margin-left: 6px; background: var(--surface-alt); color: var(--ink-soft); }

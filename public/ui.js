@@ -90,11 +90,29 @@ export function prettyTitle(text) {
     .join(' ');
 }
 
-export function floorLabel(floor) {
+export const BRIDGE_LABEL = Object.freeze({ coperto: 'Ponte coperto', scoperto: 'Ponte scoperto' });
+
+// 'coperto', 'scoperto' or null: any other value counts as no bridge.
+export function bridgeOf(room) {
+  const bridge = room ? room.bridge : null;
+  return bridge === 'coperto' || bridge === 'scoperto' ? bridge : null;
+}
+
+export function floorLabel(floor, bridge = null) {
+  if (bridge === 'coperto' || bridge === 'scoperto') return BRIDGE_LABEL[bridge];
   if (floor === null || floor === undefined) return 'piano non indicato';
   if (floor === 0) return 'piano terra';
   if (floor < 0) return `piano ${floor}`;
   return `${floor}° piano`;
+}
+
+const DEGREE_LEVEL = / \((triennale|magistrale|ciclo unico)\)$/;
+
+// A course label may end with its degree level: the name gets prettyTitle, the level stays as is.
+export function courseParts(text) {
+  const found = DEGREE_LEVEL.exec(text);
+  if (!found) return { name: prettyTitle(text), level: null };
+  return { name: prettyTitle(text.slice(0, found.index)), level: `(${found[1]})` };
 }
 
 export function normalize(text) {

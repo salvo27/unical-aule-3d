@@ -20,17 +20,17 @@
     ],
     "feeds": [
       { "ref": "discag:0881", "anchor": "LTEA", "codes": { "0881": [1, 2], "0745": [3] },
-        "course": "ECONOMIA AZIENDALE", "label": "DISCAG · Orario Economia Aziendale (L) 2026/2027 1S (PDF)" },
+        "course": "ECONOMIA AZIENDALE", "class": "L-18 R", "label": "DISCAG · Orario Economia Aziendale (L) 2026/2027 1S (PDF)" },
       { "ref": "discag:0884", "anchor": "LMEA", "codes": { "0884": [1, 2] },
-        "course": "ECONOMIA AZIENDALE E MANAGEMENT", "label": "DISCAG · Orario Economia Aziendale e Management (LM) 2026/2027 1S (PDF)" },
+        "course": "ECONOMIA AZIENDALE E MANAGEMENT", "class": "LM-77 R", "label": "DISCAG · Orario Economia Aziendale e Management (LM) 2026/2027 1S (PDF)" },
       { "ref": "discag:0882", "anchor": "LTST - STST", "codes": { "0882": [1, 2], "0747": [3] },
-        "course": "SCIENZE DEL TURISMO E DEI SERVIZI TURISTICI", "label": "DISCAG · Orario Scienze del Turismo e dei Servizi Turistici (L) 2026/2027 1S (PDF)" },
+        "course": "SCIENZE DEL TURISMO E DEI SERVIZI TURISTICI", "class": "L-15 R", "label": "DISCAG · Orario Scienze del Turismo e dei Servizi Turistici (L) 2026/2027 1S (PDF)" },
       { "ref": "discag:0883", "anchor": "VSTC - PIGDT", "codes": { "0883": [1, 2] },
-        "course": "PROGETTAZIONE, INNOVAZIONE E GESTIONE DELLE DESTINAZIONI TURISTICHE", "label": "DISCAG · Orario Progettazione, Innovazione e Gestione delle Destinazioni Turistiche (LM) 2026/2027 1S (PDF)" },
+        "course": "PROGETTAZIONE, INNOVAZIONE E GESTIONE DELLE DESTINAZIONI TURISTICHE", "class": "LM-49 R", "label": "DISCAG · Orario Progettazione, Innovazione e Gestione delle Destinazioni Turistiche (LM) 2026/2027 1S (PDF)" },
       { "ref": "discag:0885", "anchor": "SGID", "codes": { "0885": [1, 2], "0824": [3] },
-        "course": "SERVIZI GIURIDICI PER L'INNOVAZIONE DIGITALE", "label": "DISCAG · Orario Servizi Giuridici per l'Innovazione Digitale (L) 2026/2027 1S (PDF)" },
+        "course": "SERVIZI GIURIDICI PER L'INNOVAZIONE DIGITALE", "class": "L-14 R", "label": "DISCAG · Orario Servizi Giuridici per l'Innovazione Digitale (L) 2026/2027 1S (PDF)" },
       { "ref": "discag:0880", "anchor": "GIUR", "codes": { "0880": [1, 2], "0291": [3, 4, 5] },
-        "course": "GIURISPRUDENZA", "label": "DISCAG · Orario Giurisprudenza (LMCU) 2026/2027 1S (PDF)" }
+        "course": "GIURISPRUDENZA", "class": "LMG/01 R", "label": "DISCAG · Orario Giurisprudenza (LMCU) 2026/2027 1S (PDF)" }
     ],
     "rooms": [
       { "pattern": "CONS2B", "name": "CONSOLIDATA 2B", "building": "Cubo 2B", "cubes": ["2B"] },

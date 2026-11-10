@@ -10,6 +10,8 @@ import {
   mondayOf,
   prettyTitle,
   floorLabel,
+  bridgeOf,
+  courseParts,
   normalize,
   debounce,
   KIND_LABEL,
@@ -146,6 +148,13 @@ function aggregate(c) {
   if (c.free > 0) return 'free';
   if (c.busy > 0) return 'busy';
   return 'unknown';
+}
+
+// Bridge rooms have no floor number: they sit on slice 4 (coperto) or 5 (scoperto), as status counts them.
+function sliceFloor(room) {
+  const bridge = bridgeOf(room);
+  if (bridge) return bridge === 'coperto' ? 4 : 5;
+  return Number.isInteger(room.floor) ? room.floor : null;
 }
 
 function sliceState(building, floor) {
@@ -300,7 +309,7 @@ function initMap() {
     attributionControl: {
       compact: true,
       customAttribution:
-        'Progetto studentesco non ufficiale · Edifici: mappa del campus Unical e <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · Orari: University Planner Unical e <a href="https://diam.unical.it/didattica/iscriversi-studiare-laurearsi/orario-delle-lezioni/" target="_blank" rel="noopener">Dipartimento di Ingegneria dell\'Ambiente</a> · <a href="/vendor/licenses.txt" target="_blank" rel="noopener">Licenze</a>',
+        'Progetto studentesco non ufficiale · Edifici: mappa del campus Unical e <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · Orari: University Planner Unical e dipartimenti di <a href="https://diam.unical.it/didattica/iscriversi-studiare-laurearsi/orario-delle-lezioni/" target="_blank" rel="noopener">Ingegneria dell\'Ambiente</a>, <a href="https://discag.unical.it/contents/news/view/4734-orario-delle-lezioni/" target="_blank" rel="noopener">Scienze Aziendali e Giuridiche</a> e <a href="https://disu.unical.it/didattica/offerta-formativa/orario-lezioni/" target="_blank" rel="noopener">Studi Umanistici</a> · <a href="/vendor/licenses.txt" target="_blank" rel="noopener">Licenze</a>',
     },
     locale: {
       'NavigationControl.ZoomIn': 'Avvicina',
@@ -664,7 +673,7 @@ function pill(room) {
 function roomRow(room, { showBuilding = true } = {}) {
   const sub = parts([
     ['row-building', showBuilding ? placeName(room.buildingKey, room.buildingName) : null],
-    ['row-floor', floorLabel(room.floor)],
+    ['row-floor', floorLabel(room.floor, room.bridge)],
     ['row-seats', room.capacity ? `${room.capacity} posti` : null],
   ]);
   return el(
@@ -801,18 +810,25 @@ function renderBuilding(v) {
       ]),
     ),
   );
+  for (const g of floorGroups(rooms)) {
+    const rows = g.rooms.map((r) => roomRow(r, { showBuilding: false }));
+    panelBody.append(group('floor', g.label.charAt(0).toUpperCase() + g.label.slice(1), el('ul', { className: 'list list-rooms' }, rows)));
+  }
+}
+
+// Floors in order, each bridge right after the floor of its slice, rooms without a floor last.
+function floorGroups(rooms) {
   const groups = new Map();
   for (const r of rooms) {
-    const k = r.floor === null ? 'none' : String(r.floor);
-    if (!groups.has(k)) groups.set(k, []);
-    groups.get(k).push(r);
+    const bridge = bridgeOf(r);
+    const floor = sliceFloor(r);
+    const key = bridge ?? (floor === null ? 'none' : String(floor));
+    if (!groups.has(key)) {
+      groups.set(key, { rank: floor === null ? Infinity : bridge ? floor + 0.5 : floor, label: floorLabel(floor, bridge), rooms: [] });
+    }
+    groups.get(key).rooms.push(r);
   }
-  const order = [...groups.keys()].sort((a, b) => (a === 'none' ? 1 : b === 'none' ? -1 : Number(a) - Number(b)));
-  for (const k of order) {
-    const label = floorLabel(k === 'none' ? null : Number(k));
-    const rows = groups.get(k).map((r) => roomRow(r, { showBuilding: false }));
-    panelBody.append(group('floor', label.charAt(0).toUpperCase() + label.slice(1), el('ul', { className: 'list list-rooms' }, rows)));
-  }
+  return [...groups.values()].sort((a, b) => a.rank - b.rank);
 }
 
 function stateBanner(room) {
@@ -865,6 +881,12 @@ function canReportNotHeld(l, now) {
   return signedIn() && l.status === 'active' && l.start <= now + 15 * 60_000 && l.end >= now - 12 * 3_600_000;
 }
 
+// The degree level that ends a course label, "(triennale)", is shown as is and never split.
+function courseText(label) {
+  const { name, level } = courseParts(label);
+  return level ? [name, ' ', el('span', { className: 'course-level' }, level)] : name;
+}
+
 function lessonItem(l, now, onNotHeld, view) {
   const reported = view && view.reportedLessons && view.reportedLessons.has(l.id);
   const sending = view && view.report && view.report.sending;
@@ -876,7 +898,7 @@ function lessonItem(l, now, onNotHeld, view) {
   if (l.notHeld) classes.push('not-held');
   const meta = parts([
     ['lesson-year', l.year ? `${l.year}° anno` : null],
-    ['lesson-course', l.courses[0] ? prettyTitle(l.courses[0]) : null],
+    ['lesson-course', l.courses[0] ? courseText(l.courses[0]) : null],
   ]);
   return el(
     'li',
@@ -922,7 +944,7 @@ function renderRoom(v) {
         'div',
         { className: 'detail-head detail-room' },
         el('h2', { className: 'room-name' }, room.name),
-        el('p', { className: 'room-where' }, parts([['room-building', placeName(room.buildingKey, room.buildingName)], ['room-floor', floorLabel(room.floor)]])),
+        el('p', { className: 'room-where' }, parts([['room-building', placeName(room.buildingKey, room.buildingName)], ['room-floor', floorLabel(room.floor, room.bridge)]])),
       ),
       stateBanner(room),
       el(

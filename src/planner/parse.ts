@@ -3,6 +3,7 @@ import { plannerId, type PlannerId } from '../domain/primitives.js';
 import type { Lesson, RoomInfo } from '../domain/model.js';
 import { syntheticId } from '../domain/ids.js';
 import { INCLUDE_TEACHERS } from '../sync/payload.js';
+import { courseWithLevel, MAX_COURSE_CHARS, plannerLevel } from '../sources/level.js';
 
 export type PlannerFailure =
   | 'network'
@@ -123,6 +124,15 @@ function eventRooms(v: unknown): { rooms: RoomInfo[]; cut: boolean } {
   return { rooms: [...out.values()], cut };
 }
 
+// "<name> (<level>)" from the course type; the name alone for an unknown type or a label over the limit.
+function parseCourse(c: unknown): string | null {
+  if (!isRecord(c)) return null;
+  const name = text(c.descrizione, MAX_COURSE_CHARS);
+  if (!name) return null;
+  const level = isRecord(c.tipoCorso) ? plannerLevel(c.tipoCorso.codice) : null;
+  return courseWithLevel(name, level) ?? name;
+}
+
 function parseTeacher(d: unknown): string | null {
   if (!isRecord(d)) return null;
   const first = text(d.nome, 60);
@@ -194,7 +204,7 @@ export function parseLessons(raw: unknown, window: ParseWindow | null = null): P
       end,
       status: typeof item.stato === 'string' && CANCELLED_STATES.has(item.stato) ? 'cancelled' : 'active',
       kind: isRecord(item.tipoEvento) ? (text(item.tipoEvento.descrizione, 100) ?? '') : '',
-      courses: list(item.corsi, 10, (c) => (isRecord(c) ? text(c.descrizione, 200) : null)),
+      courses: list(item.corsi, 10, parseCourse),
       year: intIn(item.annoCorso, 1, 6),
       teachers: INCLUDE_TEACHERS ? list(item.docenti, 10, parseTeacher) : [],
       roomIds: [],

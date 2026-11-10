@@ -46,6 +46,7 @@ const RAW_CONFIG = {
     { texts: ['Aula sem. 44Z'], name: 'Aula sem. 44Z', building: 'Cubo 44Z' },
   ],
   offMapBuildings: { 'Polifunzionale Capannone C': 'capannone-c' },
+  degreeClasses: { '0001': 'L-8', '0002': 'LM-25 R' },
 };
 const CONFIG = parseDimesConfig(RAW_CONFIG);
 const FEED: Feed = { id: CONFIG.feedId, source: 'dimes', ref: URL_APP };
@@ -398,10 +399,10 @@ test('contiguous hours merge, fused units, renamed, removed and external rooms f
   ]);
   assert.equal(p.fallbackRooms, 1, 'only 45C2 comes from the general rule');
   const fisica = p.blocks.find((b) => b.key === 'U_FISICA')!;
-  assert.deepEqual(fisica.courses, ['INGEGNERIA DI PROVA']);
+  assert.deepEqual(fisica.courses, ['INGEGNERIA DI PROVA (triennale)']);
   assert.equal(fisica.year, null, 'a block shared by two years has no year');
   const robot = p.blocks.find((b) => b.key === 'U_ROBOT')!;
-  assert.deepEqual(robot.courses, ['ROBOTICA DI PROVA']);
+  assert.deepEqual(robot.courses, ['ROBOTICA DI PROVA (magistrale)']);
   assert.equal(robot.year, 1);
   const analisi = p.blocks.find((b) => b.key === 'U_ANALISI')!;
   assert.equal(analisi.room.capacity, 278);
@@ -656,6 +657,25 @@ test('the configuration is validated before any request', () => {
   assert.equal(field({ externalRooms: [{ texts: ['CP3'], name: 'CP3', building: 'Polifunzionale' }, { texts: ['cp3'], name: 'CP3', building: 'Polifunzionale' }] }), 'external_room_texts');
   assert.equal(field({ offMapBuildings: { 'Polifunzionale Capannone C': 'Capannone C' } }), 'off_map_buildings');
   assert.equal(field({ extra: true }), 'config');
+  assert.equal(field({ degreeClasses: undefined }), 'degree_classes');
+  assert.equal(field({ degreeClasses: ['L-8'] }), 'degree_classes');
+  assert.equal(field({ degreeClasses: { '001': 'L-8' } }), 'degree_classes');
+  assert.equal(field({ degreeClasses: { '0001': 'L-8 c.u.' } }), 'degree_classes');
+  assert.equal(field({ degreeClasses: { '0001': 'Laurea' } }), 'degree_classes');
+  assert.equal(field({ degreeClasses: {} }), 'ok');
+});
+
+test('the level comes from the degree class of the course code; unknown codes and long names show none', () => {
+  const single = parseDimesConfig({ ...RAW_CONFIG, degreeClasses: { '0001': 'LMG/01 R' } });
+  const courses = (p: WeeklyPlan, key: string) => p.blocks.find((b) => b.key === key)!.courses;
+  const p = plan(data(), single);
+  assert.deepEqual(courses(p, 'U_FISICA'), ['INGEGNERIA DI PROVA (ciclo unico)']);
+  assert.deepEqual(courses(p, 'U_ROBOT'), ['ROBOTICA DI PROVA'], 'a code without a class has no level');
+  const long = data();
+  long.classi[2].cdsNome = `LM ${'R'.repeat(188)}`;
+  assert.deepEqual(courses(plan(long), 'U_ROBOT'), ['R'.repeat(188)], 'the label would pass 200 characters');
+  long.classi[2].cdsNome = `LM ${'R'.repeat(187)}`;
+  assert.deepEqual(courses(plan(long), 'U_ROBOT'), [`${'R'.repeat(187)} (magistrale)`]);
 });
 
 test('config/dimes.json is valid, its rooms are on the map and the migration equals the generator output', async () => {
@@ -664,6 +684,8 @@ test('config/dimes.json is valid, its rooms are on the map and the migration equ
   assert.equal(config.feedId, feedId('dimes', config.url));
   assert.equal(config.feedId, 'fffd8f89e0e2c0fae1ea60a6');
   assert.equal(config.rooms.size, 28);
+  assert.equal(config.levels.size, 12);
+  assert.deepEqual(new Set(config.levels.values()), new Set(['triennale', 'magistrale']));
   const campus = await loadCampus(fileURLToPath(new URL('public/data/campus.geojson', ROOT)));
   checkBuildings(config, campus.keys);
   assert.throws(() => checkBuildings(config, new Set(['cubo-32b'])), (e) => e instanceof DimesConfigError);

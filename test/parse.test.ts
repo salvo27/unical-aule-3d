@@ -186,3 +186,44 @@ test('rooms listed after many teachers are kept, an event with more than 10 room
   const cut = parseLessons([{ ...base, risorse: fifty.map((id) => ({ aula: { ...aula, id } })) }]);
   assert.deepEqual([cut.lessons.flatMap((l) => l.roomIds).length, cut.skipped], [50, 1], 'past 50 rooms the event also counts as skipped');
 });
+
+test('every course ends with the level of its Planner course type; other types show none', () => {
+  const course = (descrizione: string, tipoCorso?: unknown) => ({ codice: '0001', descrizione, ...(tipoCorso === undefined ? {} : { tipoCorso }) });
+  const event = fakeEvent({ start: START, end: END });
+  event.corsi = [
+    course('CORSO DI PROVA', { codice: 'L', descrizione: 'Laurea' }),
+    course('CORSO DI PROVA', { codice: 'LM', descrizione: 'Laurea Magistrale' }),
+    course('ALTRO CORSO DI PROVA', { codice: 'LM5' }),
+    course('CORSO LUNGO DI PROVA', { codice: 'LM6' }),
+    course('MASTER DI PROVA', { codice: 'M1-270' }),
+    course('CORSO SENZA TIPO'),
+    course('CORSO CON TIPO MINUSCOLO', { codice: 'lm' }),
+    course('CORSO CON TIPO NUMERICO', { codice: 5 }),
+    course('CORSO CON TIPO TESTO', 'L'),
+  ];
+  assert.deepEqual(parseLessons([event]).lessons[0]!.courses, [
+    'CORSO DI PROVA (triennale)',
+    'CORSO DI PROVA (magistrale)',
+    'ALTRO CORSO DI PROVA (ciclo unico)',
+    'CORSO LUNGO DI PROVA (ciclo unico)',
+    'MASTER DI PROVA',
+    'CORSO SENZA TIPO',
+    'CORSO CON TIPO MINUSCOLO',
+    'CORSO CON TIPO NUMERICO',
+    'CORSO CON TIPO TESTO',
+  ]);
+});
+
+test('a course label never passes 200 characters: a long name keeps no level, a longer one is dropped', () => {
+  const event = fakeEvent({ start: START, end: END });
+  const type = { codice: 'L' };
+  event.corsi = [
+    { descrizione: 'A'.repeat(188), tipoCorso: type },
+    { descrizione: 'B'.repeat(189), tipoCorso: type },
+    { descrizione: 'C'.repeat(200), tipoCorso: type },
+    { descrizione: 'D'.repeat(201), tipoCorso: type },
+  ];
+  const courses = parseLessons([event]).lessons[0]!.courses;
+  assert.deepEqual(courses, [`${'A'.repeat(188)} (triennale)`, 'B'.repeat(189), 'C'.repeat(200)]);
+  assert.ok(courses.every((c) => c.length <= 200));
+});

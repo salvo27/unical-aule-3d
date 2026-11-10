@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(25);
+select plan(26);
 
 -- Section 2.14 of the contract: every function of public, aule and aule_sync, its owner, security and grantees
 -- (EXECUTE besides the owner). Anything else, or any difference, fails.
@@ -32,6 +32,7 @@ insert into expected_fn (sig, owner, definer, grantees) values
   ('public.admin_remove_calendar(text)', 'aule_config', true, '{authenticated}'),
   ('public.admin_set_sources(text[])', 'aule_config', true, '{authenticated}'),
   ('public.admin_set_room_floor(text, integer)', 'aule_config', true, '{authenticated}'),
+  ('public.admin_set_room_bridge(text, text)', 'aule_config', true, '{authenticated}'),
   ('public.admin_set_building_shape(text, integer, integer)', 'aule_config', true, '{authenticated}'),
   ('public.admin_link_building(text, text)', 'aule_config', true, '{authenticated}'),
   ('public.admin_request_sync()', 'aule_config', true, '{authenticated}'),
@@ -78,6 +79,7 @@ insert into expected_fn (sig, owner, definer, grantees) values
   ('aule.config_remove_calendar(text)', 'aule_config', false, '{postgres}'),
   ('aule.config_set_sources(text[])', 'aule_config', false, '{postgres}'),
   ('aule.config_set_room_floor(text, integer, uuid)', 'aule_config', false, '{postgres}'),
+  ('aule.config_set_room_bridge(text, text, uuid)', 'aule_config', false, '{postgres}'),
   ('aule.config_set_building_shape(text, integer, integer, uuid)', 'aule_config', false, '{postgres}'),
   ('aule.config_link_building(text, text, uuid)', 'aule_config', false, '{postgres}'),
   ('aule.config_request_run(text, uuid)', 'aule_config', false, '{postgres}'),
@@ -128,6 +130,8 @@ select throws_ok($$select aule.config_add_feed('xlsx', 'LT|Foglio di prova', 'Fo
   'xlsx feeds never enter through the configuration API, not even as postgres');
 select throws_ok($$select aule.config_add_feed('dimes', 'https://orario.prova.unical.it/', 'Orario di prova', null)$$, 'P0001', 'invalid',
   'dimes feeds never enter through the configuration API, not even as postgres');
+select throws_ok($$select aule.config_add_feed('pdf', 'https://www.unical.it/orario-di-prova.pdf', 'Orario PDF di prova', null)$$, 'P0001',
+  'invalid', 'pdf feeds never enter through the configuration API, not even as postgres');
 
 -- Tables and the view of schema aule: exactly the privileges of section 2.6.
 create temp table expected_tbl (tbl text, role text, privs text, primary key (tbl, role));

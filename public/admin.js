@@ -1,5 +1,5 @@
 import { themed } from './theme.js';
-import { el, fmtTime, fmtDay, KIND_LABEL, CATEGORY_LABEL } from './ui.js';
+import { el, fmtTime, fmtDay, KIND_LABEL, CATEGORY_LABEL, BRIDGE_LABEL, bridgeOf } from './ui.js';
 import { initAuth, signedIn, userId, onSessionChange, sendLoginLink, signOut } from './auth.js';
 import { whoamiRole, admin } from './data.js';
 import { MESSAGES, messageFor } from './errors.js';
@@ -454,31 +454,34 @@ function discoverSection() {
   );
 }
 
-const FLOOR_OPTIONS = ['', ...Array.from({ length: 15 }, (_, i) => String(i - 2))];
+const FLOOR_OPTIONS = ['', ...Array.from({ length: 15 }, (_, i) => String(i - 2)), 'coperto', 'scoperto'];
 
 function floorName(v) {
-  if (v === '') return '-';
+  if (v === '') return 'non indicato';
+  if (v === 'coperto' || v === 'scoperto') return BRIDGE_LABEL[v];
   const n = Number(v);
   return n === 0 ? 'Terra' : n < 0 ? `${n}` : `${n}°`;
 }
 
+// A number goes to admin_set_room_floor, a bridge to admin_set_room_bridge: each one clears the other.
+function setRoomLevel(room, value) {
+  if (value === 'coperto' || value === 'scoperto') return call(admin.setRoomBridge, room.id, value);
+  if (value === '') return bridgeOf(room) ? call(admin.setRoomBridge, room.id, null) : call(admin.setRoomFloor, room.id, null);
+  return call(admin.setRoomFloor, room.id, Number(value));
+}
+
 function roomsSection() {
-  const rooms = overview.rooms.filter((r) => !onlyUnplaced || r.floor === null);
+  const rooms = overview.rooms.filter((r) => !onlyUnplaced || (r.floor === null && !bridgeOf(r)));
   const rows = rooms.map((r) => {
     const select = el(
       'select',
       {
         'aria-label': `Piano di ${r.name}`,
-        on: {
-          change: (e) => {
-            const value = e.target.value === '' ? null : Number(e.target.value);
-            act(() => call(admin.setRoomFloor, r.id, value));
-          },
-        },
+        on: { change: (e) => act(() => setRoomLevel(r, e.target.value)) },
       },
       FLOOR_OPTIONS.map((v) => el('option', { value: v }, floorName(v))),
     );
-    select.value = r.floor === null ? '' : String(r.floor);
+    select.value = bridgeOf(r) ?? (r.floor === null ? '' : String(r.floor));
     const origin = r.floorSource === 'admin' ? 'impostato qui' : r.floorSource === 'seed' ? 'da elenco del dipartimento' : '';
     return el(
       'tr',
@@ -494,7 +497,7 @@ function roomsSection() {
   return section(
     'rooms',
     'Aule e piani',
-    el('p', { className: 'muted' }, 'Il Planner non indica il piano: impostalo qui per colorare il piano giusto sulla mappa.'),
+    el('p', { className: 'muted' }, 'Il Planner non indica il piano: impostalo qui per colorare il piano giusto sulla mappa. Per le aule sui ponti scegli Ponte coperto o Ponte scoperto.'),
     toggle,
     rows.length
       ? el(

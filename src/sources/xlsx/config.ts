@@ -3,6 +3,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { buildingKey, roomNameKey } from '../../domain/building.js';
 import { feedId, roomMatchKey, syntheticRoomId } from '../../domain/ids.js';
 import { isoDay, label, sourceUrl, type CalendarId, type IsoDay, type Label, type PlannerId, type SourceUrl } from '../../domain/primitives.js';
+import { classLevel, courseWithLevel, type DegreeLevel } from '../level.js';
 import { FILE_KINDS, norm, roomAlias, sheetKey, sheetRole, type DiamFileKind } from './text.js';
 
 declare const brand: unique symbol;
@@ -28,7 +29,9 @@ export interface DiamSheet {
   ref: string;
   id: CalendarId;
   year: number;
+  // Course name of the sheet header, and the course stored on every lesson, with the degree level.
   course: string;
+  lessonCourse: string;
   label: Label;
 }
 
@@ -61,6 +64,7 @@ const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
 const CAMPUS_KEY = /^[a-z0-9-]{1,80}$/;
 const ROOM_KEY = /^[a-z0-9]{1,100}$/;
 const DAY_MS = 86_400_000;
+const FILE_LEVEL: Readonly<Record<DiamFileKind, DegreeLevel>> = { LT: 'triennale', LM: 'magistrale' };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -124,7 +128,7 @@ function semester(value: unknown, field: string): Semester {
 
 function sheetOf(value: unknown): DiamSheet {
   if (!isRecord(value)) throw new DiamConfigError('sheet');
-  keysOnly(value, ['file', 'sheet', 'year', 'course', 'label'], 'sheet');
+  keysOnly(value, ['file', 'sheet', 'year', 'course', 'class', 'label'], 'sheet');
   const file = FILE_KINDS.find((k) => k === value.file);
   if (!file) throw new DiamConfigError('sheet_file');
   const name = plain(value.sheet, 60, 'sheet_name');
@@ -133,6 +137,10 @@ function sheetOf(value: unknown): DiamSheet {
   if (value.year !== role.year) throw new DiamConfigError('sheet_year');
   const course = plain(value.course, 200, 'sheet_course');
   if (norm(course) !== course) throw new DiamConfigError('sheet_course');
+  // Degree class of the course list, of the level of its file.
+  if (classLevel(value.class) !== FILE_LEVEL[file]) throw new DiamConfigError('sheet_class');
+  const lessonCourse = courseWithLevel(course, FILE_LEVEL[file]);
+  if (lessonCourse === null) throw new DiamConfigError('sheet_course');
   const ref = `${file}|${name}`;
   return {
     file,
@@ -142,6 +150,7 @@ function sheetOf(value: unknown): DiamSheet {
     id: feedId('xlsx', ref),
     year: role.year,
     course,
+    lessonCourse,
     label: check('sheet_label', () => label(plain(value.label, 160, 'sheet_label'))),
   };
 }

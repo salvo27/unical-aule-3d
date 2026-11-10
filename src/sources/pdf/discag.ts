@@ -3,6 +3,7 @@
 import { buildingKey, roomNameKey } from '../../domain/building.js';
 import { feedId, roomMatchKey, syntheticRoomId } from '../../domain/ids.js';
 import { sourceUrl, type CalendarId, type Label, type SourceUrl } from '../../domain/primitives.js';
+import { classLevel, courseWithLevel } from '../level.js';
 import type { FetchContext } from '../types.js';
 import { anchorsOf, getPage, htmlText } from './client.js';
 import { pdfCode, PdfError, sourceFailure, type PdfCode } from './codes.js';
@@ -29,6 +30,7 @@ export interface DiscagFeed {
   label: Label;
   // Attachment label on the news page after norm(), without the leading "- " and the ".pdf" suffix.
   anchor: string;
+  // Course stored on every lesson: the configured name with the level of its degree class.
   course: string;
   codes: ReadonlyMap<string, readonly number[]>;
 }
@@ -69,11 +71,15 @@ function codesOf(value: unknown): Map<string, number[]> {
 
 function feedOf(value: unknown): DiscagFeed {
   if (!isRecord(value)) throw new PdfConfigError('feed');
-  keysOnly(value, ['ref', 'anchor', 'codes', 'course', 'label'], 'feed');
+  keysOnly(value, ['ref', 'anchor', 'codes', 'course', 'class', 'label'], 'feed');
   const ref = pdfRef(value.ref, 'discag');
   const anchor = plain(value.anchor, 60, 'feed_anchor');
-  const course = plain(value.course, 200, 'feed_course');
-  if (norm(course) !== course) throw new PdfConfigError('feed_course');
+  const name = plain(value.course, 200, 'feed_course');
+  if (norm(name) !== name) throw new PdfConfigError('feed_course');
+  const level = classLevel(value.class);
+  if (level === null) throw new PdfConfigError('feed_class');
+  const course = courseWithLevel(name, level);
+  if (course === null) throw new PdfConfigError('feed_course');
   return { ref, id: feedId('pdf', ref), label: feedLabel(value.label), anchor: norm(anchor), course, codes: codesOf(value.codes) };
 }
 

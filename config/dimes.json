@@ -119,5 +119,19 @@
     { "texts": ["M1 (DIMEG)"], "name": "M1", "building": "Cubo 44C" },
     { "texts": ["Aula sem. 44Z"], "name": "Aula sem. 44Z", "building": "Cubo 44Z" }
   ],
-  "offMapBuildings": { "Polifunzionale Capannone C": "capannone-c" }
+  "offMapBuildings": { "Polifunzionale Capannone C": "capannone-c" },
+  "degreeClasses": {
+    "0829": "L-8 R",
+    "0874": "L-8 R",
+    "0707": "L-8",
+    "0873": "L-8 R",
+    "0704": "L-8",
+    "0876": "L-9 R",
+    "0818": "L-9",
+    "0771": "LM-32",
+    "0768": "LM-29",
+    "0875": "LM-22 R",
+    "0816": "LM-25",
+    "0817": "LM-27"
+  }
 }

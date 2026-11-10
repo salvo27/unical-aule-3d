@@ -46,6 +46,7 @@ const RAW = {
       anchor: 'LTPR',
       codes: { '0999': [1, 2], '0998': [3] },
       course: 'STUDI DI PROVA',
+      class: 'L-18 R',
       label: 'DISCAG · Orario Studi di Prova (L) 2026/2027 1S (PDF)',
     },
     {
@@ -53,6 +54,7 @@ const RAW = {
       anchor: 'LMPR - PROVA',
       codes: { '0997': [1, 2] },
       course: 'PROVA MAGISTRALE',
+      class: 'LM-77 R',
       label: 'DISCAG · Orario Prova Magistrale (LM) 2026/2027 1S (PDF)',
     },
   ],
@@ -369,7 +371,7 @@ test('layout: a 5 day table gives one entry per day cell and slot, never a teach
     'ECONOMIA DI PROVA|3|780-840|CONSOLIDATA 2B||',
     'ECONOMIA DI PROVA|3|960-1080|CONSOLIDATA 2B||',
   ]);
-  assert.ok(r.entries.every((e) => e.year === 1 && e.courses.join() === 'STUDI DI PROVA'));
+  assert.ok(r.entries.every((e) => e.year === 1 && e.courses.join() === 'STUDI DI PROVA (triennale)'));
   assert.ok(!JSON.stringify(r).includes('Rossi'));
 });
 
@@ -907,6 +909,19 @@ test('config: the real file loads, invalid sections are refused', async () => {
   bad((r) => (r.feeds[0]!.codes = { '99': [1] } as unknown as typeof r.feeds[0]['codes']), 'feed_codes');
   bad((r) => (r.acceptedQuirks = [{ sha256: 'x', page: 1, code: 'academic_year_mismatch', note: 'n' }]), 'sha256');
   bad((r) => (r.acceptedQuirks = [{ sha256: SHA, page: 1, code: 'course_mismatch', note: 'n' }]), 'quirk_code');
+  bad((r) => delete (r.feeds[0] as Record<string, unknown>).class, 'feed_class');
+  bad((r) => (r.feeds[0]!.class = 'L-18 c.u.'), 'feed_class');
+  bad((r) => (r.feeds[0]!.class = 'Laurea'), 'feed_class');
+  bad((r) => (r.feeds[0]!.course = 'S'.repeat(189)), 'feed_course');
+  const levelOf = (cls: string) => parseDiscagConfig({ ...RAW, feeds: [{ ...RAW.feeds[0]!, class: cls }] }).feeds[0]!.course;
+  assert.equal(levelOf('LMG/01 R'), 'STUDI DI PROVA (ciclo unico)');
+  assert.equal(levelOf('LM-41 R'), 'STUDI DI PROVA (ciclo unico)');
+  assert.equal(levelOf('LM-77'), 'STUDI DI PROVA (magistrale)');
+  const real = JSON.parse(readFileSync(fileURLToPath(new URL('config/pdf.json', ROOT)), 'utf8')) as { discag: unknown };
+  assert.deepEqual(
+    parseDiscagConfig(real.discag).feeds.map((f) => /\((triennale|magistrale|ciclo unico)\)$/.exec(f.course)?.[1]),
+    ['triennale', 'magistrale', 'triennale', 'magistrale', 'triennale', 'ciclo unico'],
+  );
   assert.throws(() => parsePdfConfig({ version: 1 }, PROFILES), (e: unknown) => e instanceof PdfConfigError && e.field === 'profile_missing');
   assert.throws(() => parsePdfConfig({ version: 1, discag: RAW }, PROFILES), (e: unknown) => e instanceof PdfConfigError && e.field === 'profile_missing');
   assert.throws(() => parsePdfConfig({ version: 1, discag: RAW, disu: DISU_RAW, other: {} }, PROFILES), (e: unknown) => e instanceof PdfConfigError && e.field === 'config');
@@ -1258,8 +1273,8 @@ const WEEK1 = [
 test('disu layout: two grids, legend and lettorato table; every cell form of the real files', () => {
   const file = readD(disuPages(disuSpec1()));
   assert.deepEqual(file.grids, [
-    { index: 1, year: 1, course: 'STUDI DI PROVA (L-1)' },
-    { index: 2, year: 2, course: 'STUDI DI PROVA (L-1)' },
+    { index: 1, year: 1, course: 'STUDI DI PROVA (L-1) (triennale)' },
+    { index: 2, year: 2, course: 'STUDI DI PROVA (L-1) (triennale)' },
   ]);
   const t = templateD(file);
   assert.deepEqual(t.unplaced, []);
@@ -1269,7 +1284,7 @@ test('disu layout: two grids, legend and lettorato table; every cell form of the
     ['legend_other_year p1g2d2h17', 'title_typo p1g2d1h16'],
   );
   const monday = t.entries.find((e) => e.day === 0 && e.startMin === 540)!;
-  assert.deepEqual([monday.endMin, monday.courses, monday.year, monday.from], [660, ['STUDI DI PROVA (L-1)'], 1, null]);
+  assert.deepEqual([monday.endMin, monday.courses, monday.year, monday.from], [660, ['STUDI DI PROVA (L-1) (triennale)'], 1, null]);
   // "Storia 1" and "Burgarella" are one room.
   const storia1 = t.entries.filter((e) => e.title === 'STORIA DI PROVA' && e.rooms[0]?.name === 'Stor 1');
   assert.equal(new Set(storia1.map((e) => e.rooms[0]!.syntheticId)).size, 1);
@@ -1346,14 +1361,14 @@ test('disu titles: a title of another file, the same lesson in two curricula of 
   assert.deepEqual(
     data.parsed.lessons.map((l) => [romeText(l.start), l.title, l.courses, l.year]),
     [
-      ['2026-11-09 09:00', 'ARCHIVISTICA DI PROVA', ['PROVE MODERNE - CURRICULUM A', 'PROVE MODERNE - CURRICULUM B'], null],
-      ['2026-11-10 10:00', 'STORIA DI PROVA', ['PROVE MODERNE - CURRICULUM B'], 2],
+      ['2026-11-09 09:00', 'ARCHIVISTICA DI PROVA', ['PROVE MODERNE - CURRICULUM A (magistrale)', 'PROVE MODERNE - CURRICULUM B (magistrale)'], null],
+      ['2026-11-10 10:00', 'STORIA DI PROVA', ['PROVE MODERNE - CURRICULUM B (magistrale)'], 2],
     ],
   );
   const december = expandTemplate({ entries: t.entries }, DCFG.calendar, ctx('2026-12-14', '2026-12-19'));
   assert.deepEqual(
     december.parsed.lessons.map((l) => [romeText(l.start), l.courses, l.year]),
-    [['2026-12-14 09:00', ['PROVE MODERNE - CURRICULUM A'], 1]],
+    [['2026-12-14 09:00', ['PROVE MODERNE - CURRICULUM A (magistrale)'], 1]],
     'only the second year of a master course is suspended',
   );
   assert.equal(new Set([...linesOf(t.entries, '2026-11-09', '2026-11-14')]).size, 2);
@@ -1430,7 +1445,7 @@ test('disu layout: every change of the layout refuses the whole file with its co
   extra[0]!.push({ text: 'TERZO ANNO' }, { grid: { from: 9, cells: { '00': 'STORIA DI PROVA (Aula Iana)' } } });
   const kept = readD(disuPages(extra));
   assert.deepEqual(kept.warnings, [{ code: 'grid_extra', where: 'p1g3' }], 'an extra grid is kept and reported');
-  assert.equal(kept.grids[2]!.course, 'STUDI DI PROVA (L-1)');
+  assert.equal(kept.grids[2]!.course, 'STUDI DI PROVA (L-1) (triennale)');
 });
 
 test('disu cells: a cell that cannot be placed fails the file and is reported by position only', () => {
@@ -1503,6 +1518,7 @@ test('disu config: the real section, its rooms shared with DISCAG and the Planne
   assert.equal(real.feeds.length, 18);
   assert.ok(real.feeds.every((f) => /^disu:[a-z0-9-]{1,40}$/.test(f.ref) && f.id === feedId('pdf', f.ref)));
   assert.equal(real.feeds.find((f) => f.ref === 'disu:cd-l3')?.id, feedId('pdf', 'disu:cd-l3'));
+  assert.ok(real.feeds.every((f) => f.degree === (f.level === 'LT' ? 'triennale' : 'magistrale')));
   const campus = await loadCampus(fileURLToPath(new URL('public/data/campus.geojson', ROOT)));
   assert.doesNotThrow(() => checkBuildings(disuProfile.parse(raw.disu), campus.keys));
   // The same room seen by two sources has one id: Planner key where the Planner has it, the DISCAG name otherwise.
@@ -1538,6 +1554,15 @@ test('disu config: the real section, its rooms shared with DISCAG and the Planne
   }, 'feed_grids');
   bad((r) => (r.feeds[0]!.level = 'LMCU'), 'feed_level');
   bad((r) => (r.feeds[0]!.course = 'Studi di prova'), 'feed_course');
+  bad((r) => (r.feeds[0]!.course = 'S'.repeat(189)), 'feed_course');
+  bad((r) => {
+    r.feeds[1]!.course = 'P'.repeat(100);
+    r.feeds[1]!.grids = [`1|${'A'.repeat(85)}`, '2|CURRICULUM B'];
+  }, 'feed_grids');
+  const fits = structuredClone(DISU_RAW);
+  fits.feeds[1]!.course = 'P'.repeat(100);
+  fits.feeds[1]!.grids = [`1|${'A'.repeat(84)}`, '2|CURRICULUM B'];
+  assert.equal(parseDisuConfig(fits).feeds[1]!.degree, 'magistrale', 'a label of exactly 200 characters fits');
   bad((r) => (r.rooms[1]!.aliases = ['STORIA1']), 'room_duplicate');
   bad((r) => (r.rooms[1]!.aliases = ['storia 2a']), 'room_aliases');
   bad((r) => (r.rooms[1]!.name = 'Stor 1'), 'room_duplicate');
