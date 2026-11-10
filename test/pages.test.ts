@@ -19,12 +19,13 @@ interface UiHelpers {
 
 const helpers = (await import(new URL('public/ui.js', ROOT).href)) as UiHelpers;
 
-test('the map credits every timetable source with its index page, and no other page', () => {
+test('the map credits the authors and every timetable source with its index page, and no other page', () => {
   const credit = /^ {6}customAttribution:\n {8}'(.*)',$/m.exec(read('public/app.js'));
   assert.ok(credit, 'customAttribution is missing from public/app.js');
   assert.ok(credit[1]!.includes('Orari: University Planner Unical e dipartimenti di <a href="' + DIAM_PAGE + '"'));
   const links = [...credit[1]!.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(links, ['https://www.openstreetmap.org/copyright', DIAM_PAGE, DIMES_PAGE, DISCAG_PAGE, DISU_PAGE, '/vendor/licenses.txt']);
+  const authors = ['https://github.com/salvo27', 'https://github.com/ernicio7', 'https://github.com/fvesc1'];
+  assert.deepEqual(links, [...authors, 'https://www.openstreetmap.org/copyright', DIAM_PAGE, DIMES_PAGE, DISCAG_PAGE, DISU_PAGE, '/vendor/licenses.txt']);
 });
 
 test('DATA-LICENSE credits the DIAm files, the DIMES page and the DISCAG and DiSU PDFs, and names files that exist', () => {

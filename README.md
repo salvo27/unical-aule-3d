@@ -20,6 +20,12 @@ Online: https://aule-unical.pages.dev
 
 Il sito conta le visite con Cloudflare Web Analytics: statistiche anonime, senza cookie e senza profilazione.
 
+## Autori
+
+- Salvatore Borda ([salvo27](https://github.com/salvo27))
+- Enrico Vanni ([ernicio7](https://github.com/ernicio7))
+- Francesco Vesci ([fvesc1](https://github.com/fvesc1))
+
 ## Licenza
 
 Il codice è distribuito con licenza [MIT](LICENSE).
