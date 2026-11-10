@@ -1,3 +1,4 @@
+import { themed } from './theme.js';
 import * as maplibregl from '/vendor/maplibre-gl.mjs';
 import {
   el,
@@ -514,11 +515,13 @@ async function loadRoom(view) {
 // ---------- rendering ----------
 
 function render() {
+  const v = state.view;
+  for (const c of [...panel.classList]) if (c.startsWith('view-')) panel.classList.remove(c);
+  panel.classList.add(`view-${v.name}`);
   panelBody.replaceChildren();
   if (state.status && !isFresh()) {
-    panelBody.append(el('div', { className: 'notice' }, 'Non riesco ad aggiornare i dati: per sicurezza le aule sono mostrate in grigio.'));
+    panelBody.append(el('div', { className: 'notice notice-stale' }, 'Non riesco ad aggiornare i dati: per sicurezza le aule sono mostrate in grigio.'));
   }
-  const v = state.view;
   if (v.name === 'building') renderBuilding(v);
   else if (v.name === 'room') renderRoom(v);
   else if (v.name === 'food') renderFood(v);
@@ -528,33 +531,50 @@ function render() {
   else renderHome();
 }
 
+// Texts made of parts are joined by " · " with each part in its own span, so a theme can style them.
+function parts(items, sep = ' · ') {
+  const out = [];
+  for (const [className, content] of items) {
+    if (!content) continue;
+    if (out.length > 0) out.push(el('span', { className: 'sep' }, sep));
+    out.push(el('span', { className }, content));
+  }
+  return out;
+}
+
+const timeOf = (ms) => el('span', { className: 'time' }, fmtTime(ms));
+
 function renderFoot() {
   const s = state.status;
-  const parts = [];
-  if (s?.lastRunAt) parts.push(`Orari aggiornati alle ${fmtTime(s.lastRunAt)} del ${fmtDay(s.lastRunAt)}`);
-  if (s?.staleCalendars) parts.push(`${s.staleCalendars} calendari non aggiornati`);
-  if (state.statusError) parts.push('connessione assente');
-  if (s && accountsEnabled() && !s.reportsAvailable) parts.push('segnalazioni non aggiornate');
-  panelFoot.textContent = parts.join(' · ') || 'Caricamento dei dati…';
+  const nodes = parts([
+    ['foot-updated', s?.lastRunAt ? ['Orari aggiornati alle ', timeOf(s.lastRunAt), ` del ${fmtDay(s.lastRunAt)}`] : null],
+    ['foot-stale', s?.staleCalendars ? `${s.staleCalendars} calendari non aggiornati` : null],
+    ['foot-offline', state.statusError ? 'connessione assente' : null],
+    ['foot-reports', s && accountsEnabled() && !s.reportsAvailable ? 'segnalazioni non aggiornate' : null],
+  ]);
+  if (nodes.length > 0) panelFoot.replaceChildren(...nodes);
+  else panelFoot.textContent = 'Caricamento dei dati…';
 }
 
 function pill(room) {
   const s = roomState(room);
-  if (s === 'free') return el('span', { className: 'pill pill-free' }, room.until ? `libera fino ${fmtTime(room.until)}` : 'libera');
-  if (s === 'busy') return el('span', { className: 'pill pill-busy' }, room.until ? `occupata fino ${fmtTime(room.until)}` : 'occupata');
+  if (s === 'free') return el('span', { className: 'pill pill-free' }, room.until ? ['libera fino ', timeOf(room.until)] : 'libera');
+  if (s === 'busy') return el('span', { className: 'pill pill-busy' }, room.until ? ['occupata fino ', timeOf(room.until)] : 'occupata');
   return el('span', { className: 'pill pill-unknown' }, 'non aggiornato');
 }
 
 function roomRow(room, { showBuilding = true } = {}) {
-  const sub = [showBuilding ? placeName(room.buildingKey, room.buildingName) : null, floorLabel(room.floor), room.capacity ? `${room.capacity} posti` : null]
-    .filter(Boolean)
-    .join(' · ');
+  const sub = parts([
+    ['row-building', showBuilding ? placeName(room.buildingKey, room.buildingName) : null],
+    ['row-floor', floorLabel(room.floor)],
+    ['row-seats', room.capacity ? `${room.capacity} posti` : null],
+  ]);
   return el(
     'li',
     {},
     el(
       'button',
-      { className: 'row', type: 'button', on: { click: () => openRoom(room.id) } },
+      { className: `row row-room row-${roomState(room)}`, type: 'button', on: { click: () => openRoom(room.id) } },
       el('div', { className: 'row-main' }, el('div', { className: 'row-title' }, room.name), el('div', { className: 'row-sub' }, sub)),
       pill(room),
     ),
@@ -569,7 +589,7 @@ function placeRow(place) {
     {},
     el(
       'button',
-      { className: 'row', type: 'button', on: { click: open } },
+      { className: `row row-place place-${place.kind === 'food' ? 'food' : place.category || 'building'}`, type: 'button', on: { click: open } },
       el('div', { className: 'row-main' }, el('div', { className: 'row-title' }, place.name), el('div', { className: 'row-sub' }, sub)),
     ),
   );
@@ -600,11 +620,11 @@ function renderHome() {
     el(
       'div',
       { className: 'summary' },
-      el('div', { className: 'stat' }, el('strong', {}, String(counts.free)), el('span', {}, 'aule libere adesso')),
-      el('div', { className: 'stat' }, el('strong', {}, String(counts.busy)), el('span', {}, 'aule occupate')),
+      el('div', { className: 'stat stat-free' }, el('strong', {}, String(counts.free)), el('span', {}, 'aule libere adesso')),
+      el('div', { className: 'stat stat-busy' }, el('strong', {}, String(counts.busy)), el('span', {}, 'aule occupate')),
     ),
   );
-  if (counts.unknown > 0) panelBody.append(el('p', { className: 'muted' }, `${counts.unknown} aule senza dati aggiornati, mostrate in grigio.`));
+  if (counts.unknown > 0) panelBody.append(el('p', { className: 'muted note-unknown' }, `${counts.unknown} aule senza dati aggiornati, mostrate in grigio.`));
   if (s.rooms.length === 0) {
     panelBody.append(el('p', { className: 'muted' }, 'Nessuna aula negli orari caricati per questo periodo.'));
     return;
@@ -614,23 +634,26 @@ function renderHome() {
     .sort((a, b) => b[1].total.free - a[1].total.free)
     .slice(0, 8);
   if (best.length > 0) {
-    panelBody.append(el('h3', { className: 'section-title' }, 'Edifici con più aule libere'));
     panelBody.append(
-      el(
-        'ul',
-        { className: 'list' },
-        best.map(([key, b]) =>
-          el(
-            'li',
-            {},
+      group(
+        'buildings',
+        'Edifici con più aule libere',
+        el(
+          'ul',
+          { className: 'list list-buildings' },
+          best.map(([key, b]) =>
             el(
-              'button',
-              { className: 'row', type: 'button', on: { click: () => openBuilding(key) } },
+              'li',
+              {},
               el(
-                'div',
-                { className: 'row-main' },
-                el('div', { className: 'row-title' }, placeName(key)),
-                el('div', { className: 'row-sub' }, `${b.total.free} libere su ${b.total.free + b.total.busy + b.total.unknown}`),
+                'button',
+                { className: 'row row-building', type: 'button', on: { click: () => openBuilding(key) } },
+                el(
+                  'div',
+                  { className: 'row-main' },
+                  el('div', { className: 'row-title' }, placeName(key)),
+                  el('div', { className: 'row-sub' }, `${b.total.free} libere su ${b.total.free + b.total.busy + b.total.unknown}`),
+                ),
               ),
             ),
           ),
@@ -638,7 +661,7 @@ function renderHome() {
       ),
     );
   }
-  panelBody.append(el('p', { className: 'muted' }, 'Tocca un cubo sulla mappa per vedere le sue aule, piano per piano.'));
+  panelBody.append(el('p', { className: 'muted hint' }, 'Tocca un cubo sulla mappa per vedere le sue aule, piano per piano.'));
 }
 
 function renderBuilding(v) {
@@ -649,7 +672,7 @@ function renderBuilding(v) {
   panelBody.append(
     el(
       'div',
-      { className: 'detail-head' },
+      { className: `detail-head detail-building${place?.category ? ` place-${place.category}` : ''}` },
       el('h2', {}, place ? place.name : 'Edificio'),
       category ? el('p', {}, category.label) : place?.dept ? el('p', {}, place.dept) : null,
     ),
@@ -672,7 +695,17 @@ function renderBuilding(v) {
   }
   const counts = { free: 0, busy: 0, unknown: 0 };
   for (const r of rooms) counts[roomState(r)] += 1;
-  panelBody.append(el('p', { className: 'muted' }, `${counts.free} libere · ${counts.busy} occupate${counts.unknown ? ` · ${counts.unknown} non aggiornate` : ''}`));
+  panelBody.append(
+    el(
+      'p',
+      { className: 'muted building-counts' },
+      parts([
+        ['count count-free', `${counts.free} libere`],
+        ['count count-busy', `${counts.busy} occupate`],
+        ['count count-unknown', counts.unknown ? `${counts.unknown} non aggiornate` : null],
+      ]),
+    ),
+  );
   const groups = new Map();
   for (const r of rooms) {
     const k = r.floor === null ? 'none' : String(r.floor);
@@ -682,8 +715,8 @@ function renderBuilding(v) {
   const order = [...groups.keys()].sort((a, b) => (a === 'none' ? 1 : b === 'none' ? -1 : Number(a) - Number(b)));
   for (const k of order) {
     const label = floorLabel(k === 'none' ? null : Number(k));
-    panelBody.append(el('h3', { className: 'section-title' }, label.charAt(0).toUpperCase() + label.slice(1)));
-    panelBody.append(el('ul', { className: 'list' }, groups.get(k).map((r) => roomRow(r, { showBuilding: false }))));
+    const rows = groups.get(k).map((r) => roomRow(r, { showBuilding: false }));
+    panelBody.append(group('floor', label.charAt(0).toUpperCase() + label.slice(1), el('ul', { className: 'list list-rooms' }, rows)));
   }
 }
 
@@ -693,12 +726,12 @@ function stateBanner(room) {
     return el(
       'div',
       { className: 'state-banner state-unknown' },
-      'Dato non aggiornato',
-      el('small', {}, 'Gli orari di questa aula non sono stati scaricati di recente: non possiamo dire se è libera.'),
+      el('span', { className: 'banner-head' }, 'Dato non aggiornato'),
+      el('small', { className: 'banner-note' }, 'Gli orari di questa aula non sono stati scaricati di recente: non possiamo dire se è libera.'),
     );
   }
   if (s === 'busy') {
-    const until = room.until ? ` fino alle ${fmtTime(room.until)}` : '';
+    const until = room.until ? [' fino alle ', timeOf(room.until)] : null;
     const reason = {
       occupied: 'Segnalazione approvata da un moderatore.',
       crowd: 'Segnalata come occupata da più persone in questo momento.',
@@ -708,16 +741,29 @@ function stateBanner(room) {
     return el(
       'div',
       { className: 'state-banner state-busy' },
-      head + until,
-      reason ? el('small', {}, reason) : room.current ? el('small', {}, prettyTitle(room.current.title)) : null,
+      el('span', { className: 'banner-head' }, head, until),
+      reason
+        ? el('small', { className: 'banner-reason' }, reason)
+        : room.current
+          ? el('small', { className: 'banner-current' }, prettyTitle(room.current.title))
+          : null,
     );
   }
   let next = null;
   if (room.next) {
     const sameDay = isoDayOf(room.next.start) === isoDayOf(Date.now());
-    next = el('small', {}, `Prossima lezione: ${prettyTitle(room.next.title)}, ${sameDay ? '' : fmtDay(room.next.start) + ' '}alle ${fmtTime(room.next.start)}`);
+    next = el(
+      'small',
+      { className: 'banner-next' },
+      `Prossima lezione: ${prettyTitle(room.next.title)}, ${sameDay ? '' : fmtDay(room.next.start) + ' '}alle ${fmtTime(room.next.start)}`,
+    );
   }
-  return el('div', { className: 'state-banner state-free' }, room.until ? `Libera fino alle ${fmtTime(room.until)}` : 'Libera per il resto della giornata', next);
+  return el(
+    'div',
+    { className: 'state-banner state-free' },
+    el('span', { className: 'banner-head' }, room.until ? ['Libera fino alle ', timeOf(room.until)] : 'Libera per il resto della giornata'),
+    next,
+  );
 }
 
 function canReportNotHeld(l, now) {
@@ -731,23 +777,33 @@ function lessonItem(l, now, onNotHeld, view) {
   const classes = ['lesson'];
   if (l.end <= now) classes.push('done');
   if (l.status === 'cancelled') classes.push('cancelled');
-  const meta = [l.teachers.join(', '), l.year ? `${l.year}° anno` : null, l.courses[0] ? prettyTitle(l.courses[0]) : null].filter(Boolean).join(' · ');
+  if (running) classes.push('running');
+  if (l.notHeld) classes.push('not-held');
+  const meta = parts([
+    ['lesson-teacher', l.teachers.join(', ')],
+    ['lesson-year', l.year ? `${l.year}° anno` : null],
+    ['lesson-course', l.courses[0] ? prettyTitle(l.courses[0]) : null],
+  ]);
   return el(
     'li',
     { className: classes.join(' ') },
     el(
       'div',
       { className: 'lesson-time' },
-      `${fmtTime(l.start)}-${fmtTime(l.end)}`,
+      el('span', { className: 'lesson-hours' }, el('span', { className: 'lesson-start' }, fmtTime(l.start)), '-', el('span', { className: 'lesson-end' }, fmtTime(l.end))),
       running ? el('span', { className: 'tag tag-now' }, 'in corso') : null,
-      l.notHeld ? el('span', { className: 'tag' }, 'non tenuta, segnalata') : l.status === 'cancelled' ? el('span', { className: 'tag' }, 'annullata') : null,
+      l.notHeld
+        ? el('span', { className: 'tag tag-not-held' }, 'non tenuta, segnalata')
+        : l.status === 'cancelled'
+          ? el('span', { className: 'tag tag-cancelled' }, 'annullata')
+          : null,
     ),
     el('div', { className: 'lesson-title' }, prettyTitle(l.title)),
-    meta ? el('div', { className: 'lesson-meta' }, meta) : null,
+    meta.length > 0 ? el('div', { className: 'lesson-meta' }, meta) : null,
     reported
-      ? el('div', { className: 'lesson-meta' }, 'Segnalata come non tenuta')
+      ? el('div', { className: 'lesson-meta lesson-reported' }, 'Segnalata come non tenuta')
       : onNotHeld && canReportNotHeld(l, now)
-        ? el('button', { className: 'link-btn', type: 'button', disabled: sending, on: { click: () => onNotHeld(l) } }, 'Segnala che non si è tenuta')
+        ? el('button', { className: 'link-btn lesson-report', type: 'button', disabled: sending, on: { click: () => onNotHeld(l) } }, 'Segnala che non si è tenuta')
         : null,
   );
 }
@@ -759,31 +815,35 @@ function renderRoom(v) {
     panelBody.append(v.error ? el('div', { className: 'notice error' }, 'Aula non trovata negli orari caricati.') : el('p', { className: 'muted' }, 'Caricamento…'));
     return;
   }
-  panelBody.append(
-    el(
-      'div',
-      { className: 'detail-head' },
-      el('h2', {}, room.name),
-      el('p', {}, `${placeName(room.buildingKey, room.buildingName)} · ${floorLabel(room.floor)}`),
-    ),
-  );
-  panelBody.append(stateBanner(room));
   const seats = room.capacity
     ? `${room.capacity}${room.effectiveCapacity && room.effectiveCapacity !== room.capacity ? ` (${room.effectiveCapacity} effettivi)` : ''}`
     : 'non indicati';
+  const services = room.services.length ? parts(room.services.map((s) => ['service', s]), ', ') : 'non indicati';
+  // Name, place, state and seats in one block, so a theme can draw it as a title block.
   panelBody.append(
     el(
-      'dl',
-      { className: 'facts' },
-      el('dt', {}, 'Posti'),
-      el('dd', {}, seats),
-      el('dt', {}, 'Servizi'),
-      el('dd', {}, room.services.length ? room.services.join(', ') : 'non indicati'),
+      'div',
+      { className: 'room-head' },
+      el(
+        'div',
+        { className: 'detail-head detail-room' },
+        el('h2', { className: 'room-name' }, room.name),
+        el('p', { className: 'room-where' }, parts([['room-building', placeName(room.buildingKey, room.buildingName)], ['room-floor', floorLabel(room.floor)]])),
+      ),
+      stateBanner(room),
+      el(
+        'dl',
+        { className: 'facts room-facts' },
+        el('dt', { className: 'fact-seats' }, 'Posti'),
+        el('dd', { className: 'fact-seats' }, seats),
+        el('dt', { className: 'fact-services' }, 'Servizi'),
+        el('dd', { className: 'fact-services' }, services),
+      ),
     ),
   );
   if (room.issues && room.issues.length > 0) {
     const list = room.issues.map((i) => CATEGORY_LABEL[i.category] || 'Altro').join(', ');
-    panelBody.append(el('div', { className: 'notice' }, `Disservizi segnalati: ${list}.`));
+    panelBody.append(el('div', { className: 'notice notice-issues' }, `Disservizi segnalati: ${list}.`));
   }
   const reports = reportBox(room, v);
   if (reports) panelBody.append(reports);
@@ -801,12 +861,12 @@ function renderRoom(v) {
   panelBody.append(
     el(
       'div',
-      { className: 'tabs' },
-      el('button', { className: 'icon-btn', type: 'button', 'aria-label': v.mode === 'day' ? 'Giorno precedente' : 'Settimana precedente', on: { click: () => move(-1) } }, '‹'),
-      el('strong', {}, rangeLabel),
-      el('button', { className: 'icon-btn', type: 'button', 'aria-label': v.mode === 'day' ? 'Giorno successivo' : 'Settimana successiva', on: { click: () => move(1) } }, '›'),
+      { className: `tabs mode-${v.mode}` },
+      el('button', { className: 'icon-btn nav-prev', type: 'button', 'aria-label': v.mode === 'day' ? 'Giorno precedente' : 'Settimana precedente', on: { click: () => move(-1) } }, '‹'),
+      el('strong', { className: 'range-label' }, rangeLabel),
+      el('button', { className: 'icon-btn nav-next', type: 'button', 'aria-label': v.mode === 'day' ? 'Giorno successivo' : 'Settimana successiva', on: { click: () => move(1) } }, '›'),
       el('span', { className: 'spacer' }),
-      el('button', { className: 'chip', type: 'button', on: { click: toggle } }, v.mode === 'day' ? 'Settimana' : 'Giorno'),
+      el('button', { className: 'chip mode-toggle', type: 'button', on: { click: toggle } }, v.mode === 'day' ? 'Settimana' : 'Giorno'),
     ),
   );
 
@@ -826,7 +886,7 @@ function renderRoom(v) {
     return;
   }
   if (v.mode === 'day') {
-    panelBody.append(el('ul', { className: 'lessons' }, v.data.lessons.map((l) => lessonItem(l, now, notHeld, v))));
+    panelBody.append(el('ul', { className: 'lessons lessons-day' }, v.data.lessons.map((l) => lessonItem(l, now, notHeld, v))));
     return;
   }
   const byDay = new Map();
@@ -835,7 +895,7 @@ function renderRoom(v) {
     if (!byDay.has(d)) byDay.set(d, []);
     byDay.get(d).push(l);
   }
-  const list = el('ul', { className: 'lessons' });
+  const list = el('ul', { className: 'lessons lessons-week' });
   for (const [d, lessons] of byDay) {
     list.append(el('li', { className: 'day-title' }, dayTitle(d)));
     for (const l of lessons) list.append(lessonItem(l, now, notHeld, v));
@@ -874,15 +934,15 @@ function reportBox(room, v) {
   const box = el('section', { className: 'report-box' }, el('h3', { className: 'section-title' }, 'Segnala'));
   if (!signedIn()) {
     box.append(
-      el('p', { className: 'muted' }, 'Accedi con la mail Unical per segnalare un problema o un\'aula occupata.'),
-      el('button', { className: 'chip', type: 'button', on: { click: () => show({ name: 'login' }) } }, 'Accedi'),
+      el('p', { className: 'muted report-login-note' }, 'Accedi con la mail Unical per segnalare un problema o un\'aula occupata.'),
+      el('button', { className: 'chip report-login', type: 'button', on: { click: () => show({ name: 'login' }) } }, 'Accedi'),
     );
     return box;
   }
   const busy = v.report && v.report.sending;
   const category = el(
     'select',
-    { 'aria-label': 'Tipo di disservizio', on: { change: (e) => (v.category = e.target.value) } },
+    { className: 'report-category', 'aria-label': 'Tipo di disservizio', on: { change: (e) => (v.category = e.target.value) } },
     el('option', { value: '' }, 'Disservizio…'),
     Object.entries(CATEGORY_LABEL).map(([value, text]) => el('option', { value }, text)),
   );
@@ -890,18 +950,18 @@ function reportBox(room, v) {
   box.append(
     el(
       'div',
-      { className: 'chip-row' },
-      el('button', { className: 'chip', type: 'button', disabled: busy, on: { click: () => submitReport(v, room.id, 'room_occupied') } }, 'È occupata adesso'),
-      el('button', { className: 'chip', type: 'button', disabled: busy, on: { click: () => submitReport(v, room.id, 'room_closed') } }, 'È chiusa'),
+      { className: 'chip-row report-quick' },
+      el('button', { className: 'chip report-occupied', type: 'button', disabled: busy, on: { click: () => submitReport(v, room.id, 'room_occupied') } }, 'È occupata adesso'),
+      el('button', { className: 'chip report-closed', type: 'button', disabled: busy, on: { click: () => submitReport(v, room.id, 'room_closed') } }, 'È chiusa'),
     ),
     el(
       'div',
-      { className: 'chip-row' },
+      { className: 'chip-row report-issue' },
       category,
       el(
         'button',
         {
-          className: 'chip',
+          className: 'chip report-send',
           type: 'button',
           disabled: busy,
           on: { click: () => category.value && submitReport(v, room.id, 'issue', { category: category.value }) },
@@ -911,7 +971,7 @@ function reportBox(room, v) {
     ),
   );
   if (v.report && !v.report.sending) box.append(el('div', { className: `notice ${v.report.ok ? 'ok' : 'error'}` }, v.report.text));
-  box.append(el('p', { className: 'muted' }, 'Un moderatore controlla ogni segnalazione. "Occupata" compare subito se la segnalano almeno 3 persone.'));
+  box.append(el('p', { className: 'muted report-note' }, 'Un moderatore controlla ogni segnalazione. "Occupata" compare subito se la segnalano almeno 3 persone.'));
   return box;
 }
 
@@ -923,12 +983,13 @@ const LOGIN_ERRORS = {
 
 function renderLogin(v) {
   panelBody.append(detailNav());
-  panelBody.append(el('div', { className: 'detail-head' }, el('h2', {}, 'Accedi'), el('p', {}, 'Ti mandiamo un link alla mail Unical: niente password.')));
+  panelBody.append(el('div', { className: 'detail-head detail-login' }, el('h2', {}, 'Accedi'), el('p', {}, 'Ti mandiamo un link alla mail Unical: niente password.')));
   if (v.sent) {
     panelBody.append(el('div', { className: 'notice ok' }, 'Controlla la mail e apri il link da questo browser.'));
     return;
   }
   const input = el('input', {
+    className: 'login-email',
     type: 'email',
     required: true,
     maxlength: '254',
@@ -954,7 +1015,7 @@ function renderLogin(v) {
       },
     },
     input,
-    el('button', { className: 'chip', type: 'submit' }, 'Mandami il link'),
+    el('button', { className: 'chip login-submit', type: 'submit' }, 'Mandami il link'),
   );
   panelBody.append(form);
   if (v.error) panelBody.append(el('div', { className: 'notice error' }, v.error));
@@ -973,17 +1034,17 @@ async function openMine() {
 
 function renderMine(v) {
   panelBody.append(detailNav());
-  const admin = state.role === 'moderator' || state.role === 'admin' ? el('a', { className: 'chip', href: '/admin' }, 'Area admin') : null;
+  const admin = state.role === 'moderator' || state.role === 'admin' ? el('a', { className: 'chip admin-link', href: themed('/admin') }, 'Area admin') : null;
   panelBody.append(
-    el('div', { className: 'detail-head' }, el('h2', {}, 'Le mie segnalazioni')),
+    el('div', { className: 'detail-head detail-mine' }, el('h2', {}, 'Le mie segnalazioni')),
     el(
       'div',
-      { className: 'chip-row' },
+      { className: 'chip-row account-actions' },
       admin,
       el(
         'button',
         {
-          className: 'chip',
+          className: 'chip logout',
           type: 'button',
           on: {
             click: async () => {
@@ -1004,15 +1065,20 @@ function renderMine(v) {
   panelBody.append(
     el(
       'ul',
-      { className: 'list' },
+      { className: 'list list-requests' },
       v.items.map((r) => {
         const what = r.kind === 'issue' ? `${KIND_LABEL.issue}: ${CATEGORY_LABEL[r.category] || 'Altro'}` : KIND_LABEL[r.kind];
         const where = r.roomName ? `${r.roomName}, ${placeName(r.buildingKey, r.buildingName)}` : 'Aula non più negli orari';
         return el(
           'li',
-          { className: 'row' },
-          el('div', { className: 'row-main' }, el('div', { className: 'row-title' }, what), el('div', { className: 'row-sub' }, `${where} · ${fmtDay(r.createdAt)}`)),
-          el('span', { className: `pill pill-${r.status === 'approved' ? 'free' : r.status === 'rejected' ? 'busy' : 'unknown'}` }, STATUS_LABEL[r.status]),
+          { className: `row row-request request-${Object.hasOwn(STATUS_LABEL, r.status) ? r.status : 'other'}` },
+          el(
+            'div',
+            { className: 'row-main' },
+            el('div', { className: 'row-title' }, what),
+            el('div', { className: 'row-sub' }, parts([['request-where', where], ['request-date', fmtDay(r.createdAt)]])),
+          ),
+          el('span', { className: `pill pill-${r.status === 'approved' ? 'free' : r.status === 'rejected' ? 'busy' : 'unknown'} pill-request` }, STATUS_LABEL[r.status]),
         );
       }),
     ),
@@ -1063,47 +1129,47 @@ function safeLink(href, text) {
 function renderPlaceInfo(key, fallback) {
   const info = state.placeInfo?.places?.[key];
   if (!info) {
-    panelBody.append(el('p', { className: 'muted' }, fallback));
+    panelBody.append(el('p', { className: 'muted place-note' }, fallback));
     return;
   }
   if (info.hours && info.hours.length > 0) {
-    panelBody.append(el('dl', { className: 'facts' }, info.hours.flatMap((h) => [el('dt', {}, h.days), el('dd', {}, h.time)])));
+    panelBody.append(el('dl', { className: 'facts hours' }, info.hours.flatMap((h) => [el('dt', {}, h.days), el('dd', {}, h.time)])));
   }
-  if (info.note) panelBody.append(el('p', { className: 'muted' }, info.note));
+  if (info.note) panelBody.append(el('p', { className: 'muted place-note' }, info.note));
   const links = (info.links || []).map((l) => safeLink(l.url, l.label)).filter(Boolean);
-  if (links.length > 0) panelBody.append(el('div', { className: 'chip-row' }, links.map((a) => ((a.className = 'chip'), a))));
+  if (links.length > 0) panelBody.append(el('div', { className: 'chip-row place-links' }, links.map((a) => ((a.className = 'chip'), a))));
   const source = info.source ? safeLink(info.source, 'fonte') : null;
   if (info.checkedAt) {
-    panelBody.append(el('p', { className: 'muted' }, `Informazioni verificate il ${info.checkedAt}`, source ? ', ' : '', source, '. Possono cambiare durante le festività.'));
+    panelBody.append(el('p', { className: 'muted source-note' }, `Informazioni verificate il ${info.checkedAt}`, source ? ', ' : '', source, '. Possono cambiare durante le festività.'));
   }
 }
 
 function renderFood(v) {
   const place = state.places.get(v.key);
   panelBody.append(detailNav());
-  panelBody.append(el('div', { className: 'detail-head' }, el('h2', {}, place ? place.name : 'Mensa'), el('p', {}, 'Mensa e ristoro')));
-  if (place?.note) panelBody.append(el('p', { className: 'muted' }, place.note));
+  panelBody.append(el('div', { className: 'detail-head detail-food' }, el('h2', {}, place ? place.name : 'Mensa'), el('p', {}, 'Mensa e ristoro')));
+  if (place?.note) panelBody.append(el('p', { className: 'muted place-note' }, place.note));
   const info = state.canteens?.places?.[v.key];
   if (!info) {
-    panelBody.append(el('p', { className: 'muted' }, 'Orari non disponibili qui. ', safeLink(MENSA_PAGE, 'Pagina del servizio mensa Unical')));
+    panelBody.append(el('p', { className: 'muted source-note' }, 'Orari non disponibili qui. ', safeLink(MENSA_PAGE, 'Pagina del servizio mensa Unical')));
     return;
   }
   panelBody.append(
     el(
       'dl',
-      { className: 'facts' },
+      { className: 'facts hours' },
       info.hours.flatMap((h) => [el('dt', {}, h.days), el('dd', {}, h.time)]),
     ),
   );
-  if (info.note) panelBody.append(el('p', { className: 'muted' }, info.note));
+  if (info.note) panelBody.append(el('p', { className: 'muted place-note' }, info.note));
   if (info.official === false) {
     panelBody.append(
-      el('p', { className: 'muted' }, 'Orari non presenti nelle pagine ufficiali, indicati da chi frequenta il campus. ', safeLink(MENSA_PAGE, 'Pagina del servizio mensa')),
+      el('p', { className: 'muted source-note' }, 'Orari non presenti nelle pagine ufficiali, indicati da chi frequenta il campus. ', safeLink(MENSA_PAGE, 'Pagina del servizio mensa')),
     );
     return;
   }
   const source = safeLink(info.source || state.canteens.source || MENSA_PAGE, 'fonte');
-  panelBody.append(el('p', { className: 'muted' }, `Orari verificati il ${state.canteens.checkedAt}, `, source, '. Possono cambiare durante le festività.'));
+  panelBody.append(el('p', { className: 'muted source-note' }, `Orari verificati il ${state.canteens.checkedAt}, `, source, '. Possono cambiare durante le festività.'));
 }
 
 // ---------- search ----------
@@ -1160,21 +1226,31 @@ function lessonHitRow(hit) {
     {},
     el(
       'button',
-      { className: 'row', type: 'button', on: { click: () => openRoom(hit.roomId, day) } },
+      { className: 'row row-lesson', type: 'button', on: { click: () => openRoom(hit.roomId, day) } },
       el(
         'div',
         { className: 'row-main' },
         el('div', { className: 'row-title' }, prettyTitle(hit.title)),
-        el('div', { className: 'row-sub' }, `${dayTitle(day)} ${fmtTime(hit.start)}-${fmtTime(hit.end)} · ${hit.roomName}, ${placeName(hit.buildingKey, hit.buildingName)}`),
+        el(
+          'div',
+          { className: 'row-sub' },
+          parts([
+            ['hit-when', `${dayTitle(day)} ${fmtTime(hit.start)}-${fmtTime(hit.end)}`],
+            ['hit-where', `${hit.roomName}, ${placeName(hit.buildingKey, hit.buildingName)}`],
+          ]),
+        ),
       ),
     ),
   );
 }
 
+function group(name, title, list) {
+  return el('div', { className: `group group-${name}` }, el('h3', { className: 'section-title' }, title), list);
+}
+
 function renderSearch(v) {
   if (v.places.length > 0) {
-    panelBody.append(el('h3', { className: 'section-title' }, 'Luoghi'));
-    panelBody.append(el('ul', { className: 'list' }, v.places.map(placeRow)));
+    panelBody.append(group('places', 'Luoghi', el('ul', { className: 'list list-places' }, v.places.map(placeRow))));
   }
   if (v.error) {
     panelBody.append(
@@ -1188,12 +1264,10 @@ function renderSearch(v) {
   }
   const { rooms, lessons } = v.results;
   if (rooms.length > 0) {
-    panelBody.append(el('h3', { className: 'section-title' }, 'Aule'));
-    panelBody.append(el('ul', { className: 'list' }, rooms.map((r) => roomRow(r))));
+    panelBody.append(group('rooms', 'Aule', el('ul', { className: 'list list-rooms' }, rooms.map((r) => roomRow(r)))));
   }
   if (lessons.length > 0) {
-    panelBody.append(el('h3', { className: 'section-title' }, 'Lezioni'));
-    panelBody.append(el('ul', { className: 'list' }, lessons.map(lessonHitRow)));
+    panelBody.append(group('lessons', 'Lezioni', el('ul', { className: 'list list-lessons' }, lessons.map(lessonHitRow))));
   }
   if (rooms.length === 0 && lessons.length === 0 && v.places.length === 0) {
     panelBody.append(el('p', { className: 'muted' }, 'Nessun risultato.'));

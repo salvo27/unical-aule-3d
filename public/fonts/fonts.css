@@ -1,0 +1,21 @@
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/AtkinsonHyperlegibleNext.woff2") format("woff2");
+}
+
+:root {
+  --ui-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+:root[data-font="atkinson"] {
+  --ui-font: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+:root[data-font] body,
+:root[data-font] button,
+:root[data-font] input,
+:root[data-font] select,
+:root[data-font] textarea {
+  font-family: var(--ui-font);
+}

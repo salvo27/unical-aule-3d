@@ -1,3 +1,4 @@
+import { themed } from './theme.js';
 import { el, fmtTime, fmtDay, KIND_LABEL, CATEGORY_LABEL } from './ui.js';
 import { initAuth, signedIn, userId, onSessionChange, sendLoginLink, signOut, authed } from './auth.js';
 
@@ -147,12 +148,12 @@ function showNoAccess() {
 }
 
 function renderLogin(note) {
-  const input = el('input', { type: 'email', id: 'email', autocomplete: 'email', maxlength: '254', required: true, placeholder: 'nome@unical.it' });
+  const input = el('input', { className: 'login-email', type: 'email', id: 'email', autocomplete: 'email', maxlength: '254', required: true, placeholder: 'nome@unical.it' });
   const message = el('p', { className: 'muted' }, typeof note === 'string' ? note : '');
   const form = el(
     'form',
     {
-      className: 'card login',
+      className: 'card login admin-login',
       on: {
         submit: async (e) => {
           e.preventDefault();
@@ -172,7 +173,7 @@ function renderLogin(note) {
     el('h1', {}, 'Aule Unical, admin'),
     el('label', { for: 'email' }, 'Mail Unical'),
     input,
-    el('button', { className: 'btn', type: 'submit' }, 'Mandami il link'),
+    el('button', { className: 'btn login-submit', type: 'submit' }, 'Mandami il link'),
     message,
   );
   root.replaceChildren(form);
@@ -234,8 +235,8 @@ function act(fn, success) {
   });
 }
 
-function section(title, ...children) {
-  return el('section', { className: 'card' }, el('h2', {}, title), ...children);
+function section(name, title, ...children) {
+  return el('section', { className: `card card-${name}` }, el('h2', {}, title), ...children);
 }
 
 function syncSection() {
@@ -244,13 +245,14 @@ function syncSection() {
     ? `Ultimo aggiornamento ${when(lastRun.finishedAt)}: ${lastRun.outcome === 'completed' ? 'completato' : 'non riuscito'}, ${lastRun.ok} calendari scaricati, ${lastRun.failed} con errori.`
     : 'Nessun aggiornamento ancora eseguito.';
   return section(
+    'sync',
     'Aggiornamento orari',
-    el('p', {}, summary),
+    el('p', { className: 'sync-summary' }, summary),
     el('p', { className: 'muted' }, 'Gli orari si aggiornano da soli più volte al giorno. Usa il bottone dopo aver cambiato i calendari.'),
     el(
       'button',
       {
-        className: 'btn',
+        className: 'btn sync-run',
         type: 'button',
         disabled: running,
         on: { click: () => act(() => call('/admin/api/sync', { method: 'POST', body: {} }), 'Aggiornamento avviato.') },
@@ -258,6 +260,11 @@ function syncSection() {
       running ? 'Aggiornamento in corso…' : 'Aggiorna adesso',
     ),
   );
+}
+
+function calendarState(c) {
+  if (!c.run) return 'never';
+  return c.run.outcome === 'ok' ? 'ok' : 'error';
 }
 
 function calendarStatus(c) {
@@ -272,7 +279,7 @@ function calendarsSection() {
       'tr',
       {},
       el('td', {}, c.label, el('div', { className: 'mono' }, c.id)),
-      el('td', {}, calendarStatus(c)),
+      el('td', { className: `cal-status cal-${calendarState(c)}` }, calendarStatus(c)),
       el('td', { className: 'num' }, c.run ? String(c.run.lessons) : '-'),
       el('td', {}, c.fetchedAt ? when(c.fetchedAt) : '-'),
       el(
@@ -291,7 +298,7 @@ function calendarsSection() {
         el(
           'button',
           {
-            className: 'link-btn',
+            className: 'link-btn danger',
             type: 'button',
             on: {
               click: () => {
@@ -309,7 +316,7 @@ function calendarsSection() {
   const form = el(
     'form',
     {
-      className: 'inline-form',
+      className: 'inline-form calendar-form',
       on: {
         submit: (e) => {
           e.preventDefault();
@@ -322,6 +329,7 @@ function calendarsSection() {
     el('button', { className: 'btn', type: 'submit' }, 'Aggiungi'),
   );
   return section(
+    'calendars',
     `Calendari (${overview.calendars.length})`,
     el(
       'div',
@@ -338,7 +346,7 @@ function calendarsSection() {
 }
 
 function discoverSection() {
-  const sources = el('textarea', { rows: '4', spellcheck: 'false' });
+  const sources = el('textarea', { className: 'sources', rows: '4', spellcheck: 'false' });
   sources.value = overview.sources.join('\n');
   const saveSources = () => {
     const urls = sources.value
@@ -399,6 +407,7 @@ function discoverSection() {
       )
     : null;
   return section(
+    'discover',
     'Cerca nuovi calendari',
     el('p', { className: 'muted' }, 'Pagine dei dipartimenti da leggere, una per riga (solo https su unical.it). A inizio semestre premi "Cerca" e conferma i calendari nuovi.'),
     sources,
@@ -445,11 +454,12 @@ function roomsSection() {
       el('td', {}, r.buildingName || '-', r.buildingKey ? null : el('div', { className: 'muted' }, 'non sulla mappa')),
       el('td', { className: 'num' }, r.capacity ? String(r.capacity) : '-'),
       el('td', {}, select),
-      el('td', { className: 'muted' }, origin),
+      el('td', { className: 'muted floor-origin' }, origin),
     );
   });
   const toggle = el('label', { className: 'check' }, el('input', { type: 'checkbox', checked: onlyUnplaced, on: { change: (e) => ((onlyUnplaced = e.target.checked), render()) } }), ' Solo aule senza piano');
   return section(
+    'rooms',
     'Aule e piani',
     el('p', { className: 'muted' }, 'Il Planner non indica il piano: impostalo qui per colorare il piano giusto sulla mappa.'),
     toggle,
@@ -505,7 +515,7 @@ function buildingsSection() {
   const shapeForm = el(
     'form',
     {
-      className: 'inline-form',
+      className: 'inline-form shape-form',
       on: {
         submit: (e) => {
           e.preventDefault();
@@ -524,14 +534,15 @@ function buildingsSection() {
   );
   const shapes = Object.entries(overview.shapes).map(([key, s]) => el('li', {}, `${names.get(key) || key}: ${s.floors} piani, dislivello ${s.baseLevel}`));
   return section(
+    'buildings',
     'Edifici',
     el('h3', {}, 'Nomi del Planner da collegare alla mappa'),
-    unmatched.length ? el('ul', { className: 'plain' }, unmatched) : el('p', { className: 'muted' }, 'Tutti gli edifici del Planner sono sulla mappa.'),
-    links.length ? el('ul', { className: 'plain' }, links) : null,
+    unmatched.length ? el('ul', { className: 'plain unmatched' }, unmatched) : el('p', { className: 'muted' }, 'Tutti gli edifici del Planner sono sulla mappa.'),
+    links.length ? el('ul', { className: 'plain building-links' }, links) : null,
     el('h3', {}, 'Numero di piani'),
     el('p', { className: 'muted' }, 'I cubi partono da 5 piani. Il dislivello alza il piano terra, per i cubi più in basso lungo la collina.'),
     shapeForm,
-    shapes.length ? el('ul', { className: 'plain' }, shapes) : null,
+    shapes.length ? el('ul', { className: 'plain shapes' }, shapes) : null,
   );
 }
 
@@ -556,12 +567,13 @@ function requestsSection() {
       el(
         'td',
         { className: 'actions-cell' },
-        el('button', { className: 'btn', type: 'button', on: { click: () => decide('approved') } }, 'Approva'),
-        el('button', { className: 'btn btn-secondary', type: 'button', on: { click: () => decide('rejected') } }, 'Respingi'),
+        el('button', { className: 'btn approve', type: 'button', on: { click: () => decide('approved') } }, 'Approva'),
+        el('button', { className: 'btn btn-secondary reject', type: 'button', on: { click: () => decide('rejected') } }, 'Respingi'),
       ),
     );
   });
   return section(
+    'requests',
     `Richieste da controllare (${rows.length})`,
     el('p', { className: 'muted' }, 'Una richiesta approvata cambia la mappa per il suo intervallo. Le richieste scadute spariscono da sole.'),
     rows.length
@@ -598,7 +610,7 @@ function usersSection() {
   const lookup = el(
     'form',
     {
-      className: 'inline-form',
+      className: 'inline-form user-lookup',
       on: {
         submit: (e) => {
           e.preventDefault();
@@ -624,8 +636,9 @@ function usersSection() {
       ? null
       : found === null
         ? el('p', { className: 'muted' }, 'Nessun account con questa mail. La persona deve prima accedere una volta.')
-        : el('div', { className: 'inline-form' }, el('strong', {}, found.email), roleSelect(found));
+        : el('div', { className: 'inline-form user-found' }, el('strong', {}, found.email), roleSelect(found));
   return section(
+    'users',
     'Utenti e ruoli',
     el('p', { className: 'muted' }, 'Per dare un ruolo cerca la persona con la sua mail esatta. Qui sotto ci sono solo moderatori e admin; il proprio ruolo non si può cambiare.'),
     lookup,
@@ -645,7 +658,7 @@ function render() {
   const logout = el(
     'button',
     {
-      className: 'link-btn',
+      className: 'link-btn admin-logout',
       type: 'button',
       on: {
         click: async () => {
@@ -658,7 +671,7 @@ function render() {
     'Esci',
   );
   const parts = [
-    el('header', { className: 'admin-head' }, el('h1', {}, 'Aule Unical, admin'), el('a', { href: '/' }, 'Mappa'), logout),
+    el('header', { className: 'admin-head' }, el('h1', {}, 'Aule Unical, admin'), el('a', { className: 'admin-map-link', href: themed('/') }, 'Mappa'), logout),
     flash ? el('div', { className: `notice ${flash.kind === 'error' ? 'error' : 'ok'}`, role: 'status' }, flash.text) : null,
     requestsSection(),
     ...(role === 'admin' ? [syncSection(), calendarsSection(), discoverSection(), roomsSection(), buildingsSection(), usersSection()] : []),

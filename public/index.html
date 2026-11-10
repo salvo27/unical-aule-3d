@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="it">
+<html lang="it" data-theme="essenziale" data-font="atkinson">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,7 +7,10 @@
   <meta name="description" content="Mappa 3D del campus Unical con le aule libere e occupate, dagli orari pubblicati.">
   <link rel="stylesheet" href="/vendor/maplibre-gl.css">
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <link rel="stylesheet" href="/theme-essenziale.css">
   <script src="/vendor/supabase.js"></script>
+  <script type="module" src="/theme.js"></script>
   <script type="module" src="/app.js"></script>
 </head>
 <body>
@@ -26,7 +29,7 @@
       </form>
       <div class="filters" role="group" aria-label="Filtri">
         <button type="button" id="f-free" class="chip" aria-pressed="false">Libere adesso</button>
-        <label class="chip chip-field">Per almeno
+        <label class="chip chip-field chip-hours"><span class="chip-label">Per almeno</span>
           <select id="f-hours">
             <option value="">-</option>
             <option value="1">1 ora</option>
@@ -35,7 +38,7 @@
             <option value="4">4 ore</option>
           </select>
         </label>
-        <label class="chip chip-field">Posti
+        <label class="chip chip-field chip-seats"><span class="chip-label">Posti</span>
           <input id="f-seats" type="number" min="1" max="2000" step="1" inputmode="numeric" placeholder="min">
         </label>
       </div>
@@ -45,13 +48,13 @@
   </aside>
 
   <div class="legend" aria-label="Legenda">
-    <span><i class="sw sw-free"></i>Libera</span>
-    <span><i class="sw sw-busy"></i>Occupata</span>
-    <span><i class="sw sw-unknown"></i>Dato non aggiornato</span>
-    <span><i class="sw sw-none"></i>Nessuna aula nei calendari</span>
-    <span><i class="sw sw-food"></i>Mensa / ristoro</span>
-    <span><i class="sw sw-library"></i>Biblioteca / aula studio</span>
-    <span><i class="sw sw-culture"></i>Cinema e teatro</span>
+    <span class="legend-item legend-free"><i class="sw sw-free"></i>Libera</span>
+    <span class="legend-item legend-busy"><i class="sw sw-busy"></i>Occupata</span>
+    <span class="legend-item legend-unknown"><i class="sw sw-unknown"></i>Dato non aggiornato</span>
+    <span class="legend-item legend-none"><i class="sw sw-none"></i>Nessuna aula nei calendari</span>
+    <span class="legend-item legend-food"><i class="sw sw-food"></i>Mensa / ristoro</span>
+    <span class="legend-item legend-library"><i class="sw sw-library"></i>Biblioteca / aula studio</span>
+    <span class="legend-item legend-culture"><i class="sw sw-culture"></i>Cinema e teatro</span>
   </div>
 </body>
 </html>
