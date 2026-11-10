@@ -36,13 +36,19 @@ Date dei semestri, giorni senza lezioni, codici, nomi e classi di laurea dei cor
 
 I PDF non vengono ridistribuiti: non sono nel repository e l'app non li serve. I test usano pagine inventate. Fonti degli orari: Dipartimento di Scienze Aziendali e Giuridiche, Università della Calabria, notizia "Orario delle lezioni" (<https://discag.unical.it/contents/news/view/4734-orario-delle-lezioni/>); Dipartimento di Studi Umanistici, Università della Calabria, pagina "Orario lezioni" (<https://disu.unical.it/didattica/offerta-formativa/orario-lezioni/>). Uso non commerciale, citando la fonte, come chiedono le note legali del portale dell'Ateneo.
 
+## Orari del DIMES: `config/dimes.json` e `supabase/migrations/20261110090800_dimes_feeds.sql`
+
+Date dei semestri, giorni senza lezioni, codici e classi di laurea dei corsi, tabella delle aule e indirizzo della pagina, presi dalla pagina pubblica degli orari del Dipartimento di Ingegneria Informatica, Modellistica, Elettronica e Sistemistica (DIMES) dell'Università della Calabria. I diritti restano all'Università della Calabria.
+
+I dati della pagina non vengono ridistribuiti: non sono nel repository e l'app non li serve. I test usano dati inventati. Fonte degli orari: Dipartimento di Ingegneria Informatica, Modellistica, Elettronica e Sistemistica, Università della Calabria, app "Orario DIMES" (<https://orariocorsi.dimes.unical.it/>). Uso non commerciale, citando la fonte, come chiedono le note legali del portale dell'Ateneo.
+
 ## Piani delle aule: `supabase/migrations/20261110091200_room_floors.sql`
 
 Piani di alcune aule, presi dalle pagine pubbliche "Strutture" e dalle piantine dei dipartimenti dell'Università della Calabria. I diritti restano all'Università della Calabria e questi dati non sono coperti dalla licenza MIT.
 
 ## Dati scaricati quando l'app gira
 
-Gli orari delle lezioni vengono scaricati da GitHub Actions dai calendari pubblici del University Planner, dai file Excel del DIAm e dai PDF di DISCAG e DiSU, e restano nel database Supabase: mai nel repository, nei log o negli artifact dei workflow. I log contengono solo eventi, id, conteggi e codici. Degli impegni che non sono lezioni (prenotazioni, esami, riunioni) si salvano solo il tipo e l'orario. I nomi dei docenti non vengono salvati. I dati restano dell'Università della Calabria.
+Gli orari delle lezioni vengono scaricati da GitHub Actions dai calendari pubblici del University Planner, dai file Excel del DIAm, dalla pagina degli orari del DIMES e dai PDF di DISCAG e DiSU, e restano nel database Supabase: mai nel repository, nei log o negli artifact dei workflow. I log contengono solo eventi, id, conteggi e codici. Degli impegni che non sono lezioni (prenotazioni, esami, riunioni) si salvano solo il tipo e l'orario. I nomi dei docenti non vengono salvati. I dati restano dell'Università della Calabria.
 
 ## `public/fonts/`
 

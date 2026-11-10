@@ -308,7 +308,7 @@ function initMap() {
     attributionControl: {
       compact: true,
       customAttribution:
-        'Progetto studentesco non ufficiale · Edifici: mappa del campus Unical e <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · Orari: University Planner Unical e dipartimenti di <a href="https://diam.unical.it/didattica/iscriversi-studiare-laurearsi/orario-delle-lezioni/" target="_blank" rel="noopener">Ingegneria dell\'Ambiente</a>, <a href="https://discag.unical.it/contents/news/view/4734-orario-delle-lezioni/" target="_blank" rel="noopener">Scienze Aziendali e Giuridiche</a> e <a href="https://disu.unical.it/didattica/offerta-formativa/orario-lezioni/" target="_blank" rel="noopener">Studi Umanistici</a> · <a href="/vendor/licenses.txt" target="_blank" rel="noopener">Licenze</a>',
+        'Progetto studentesco non ufficiale · Edifici: mappa del campus Unical e <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · Orari: University Planner Unical e dipartimenti di <a href="https://diam.unical.it/didattica/iscriversi-studiare-laurearsi/orario-delle-lezioni/" target="_blank" rel="noopener">Ingegneria dell\'Ambiente</a>, <a href="https://orariocorsi.dimes.unical.it/" target="_blank" rel="noopener">Ingegneria Informatica (DIMES)</a>, <a href="https://discag.unical.it/contents/news/view/4734-orario-delle-lezioni/" target="_blank" rel="noopener">Scienze Aziendali e Giuridiche</a> e <a href="https://disu.unical.it/didattica/offerta-formativa/orario-lezioni/" target="_blank" rel="noopener">Studi Umanistici</a> · <a href="/vendor/licenses.txt" target="_blank" rel="noopener">Licenze</a>',
     },
     locale: {
       'NavigationControl.ZoomIn': 'Avvicina',

@@ -9,6 +9,7 @@ const DIAM_PAGE = (JSON.parse(read('config/diam.json')) as { pageUrl: string }).
 const PDF = JSON.parse(read('config/pdf.json')) as { discag: { pageUrl: string }; disu: { indexUrl: string } };
 const DISCAG_PAGE = PDF.discag.pageUrl;
 const DISU_PAGE = PDF.disu.indexUrl;
+const DIMES_PAGE = (JSON.parse(read('config/dimes.json')) as { url: string }).url;
 
 interface UiHelpers {
   floorLabel(floor: unknown, bridge?: unknown): string;
@@ -23,27 +24,31 @@ test('the map credits every timetable source with its index page, and no other p
   assert.ok(credit, 'customAttribution is missing from public/app.js');
   assert.ok(credit[1]!.includes('Orari: University Planner Unical e dipartimenti di <a href="' + DIAM_PAGE + '"'));
   const links = [...credit[1]!.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(links, ['https://www.openstreetmap.org/copyright', DIAM_PAGE, DISCAG_PAGE, DISU_PAGE, '/vendor/licenses.txt']);
+  assert.deepEqual(links, ['https://www.openstreetmap.org/copyright', DIAM_PAGE, DIMES_PAGE, DISCAG_PAGE, DISU_PAGE, '/vendor/licenses.txt']);
 });
 
-test('DATA-LICENSE credits the DIAm files and the DISCAG and DiSU PDFs, and names files that exist', () => {
+test('DATA-LICENSE credits the DIAm files, the DIMES page and the DISCAG and DiSU PDFs, and names files that exist', () => {
   const text = read('DATA-LICENSE.md');
   const shown = [
     DIAM_PAGE,
+    DIMES_PAGE,
     DISCAG_PAGE,
     DISU_PAGE,
     "Dipartimento di Ingegneria dell'Ambiente",
+    'Dipartimento di Ingegneria Informatica, Modellistica, Elettronica e Sistemistica',
     'Dipartimento di Scienze Aziendali e Giuridiche',
     'Dipartimento di Studi Umanistici',
     'config/diam.json',
     'config/pdf.json',
     'supabase/migrations/20261110090500_xlsx_feeds.sql',
     'supabase/migrations/20261110091000_pdf_feeds.sql',
+    'config/dimes.json',
+    'supabase/migrations/20261110090800_dimes_feeds.sql',
   ];
   for (const part of shown) assert.ok(text.includes(part), part);
   for (const file of text.match(/(?:config|supabase\/migrations)\/[\w.-]+\.(?:json|sql)/g) ?? []) assert.ok(read(file).length > 0, file);
   const pages = new Set(text.match(/https:\/\/[a-z.]+\.unical\.it\/[^\s>)]*/g));
-  assert.deepEqual([...pages].sort(), [DIAM_PAGE, DISCAG_PAGE, DISU_PAGE].sort());
+  assert.deepEqual([...pages].sort(), [DIAM_PAGE, DIMES_PAGE, DISCAG_PAGE, DISU_PAGE].sort());
 });
 
 // Pages answers unknown paths with the map unless a top level 404.html exists.
