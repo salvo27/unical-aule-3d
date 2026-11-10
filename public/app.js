@@ -16,14 +16,16 @@ import {
   CATEGORY_LABEL,
   STATUS_LABEL,
 } from './ui.js';
-import { initAuth, enabled as accountsEnabled, signedIn, onSessionChange, sendLoginLink, signOut, authed } from './auth.js';
+import { initAuth, enabled as accountsEnabled, signedIn, onSessionChange, sendLoginLink, signOut } from './auth.js';
+import { reportRoom, myRequests, whoamiRole } from './data.js';
+import { messageFor, REPORT_MESSAGES } from './errors.js';
 
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 const FALLBACK_STYLE = { version: 8, sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#f2efe9' } }] };
 const FLOOR_H = 3.4;
 const GAP = 0.45;
 const BRIDGE_LEVEL = 4;
-const STATUS_REFRESH_MS = 60_000;
+const STATUS_REFRESH_MS = 120_000;
 const STATUS_MAX_AGE_MS = 5 * 60_000;
 const MENSA_PAGE = 'https://www.unical.it/campus/vivere-il-campus/servizio-mensa/';
 const COLORS = {
@@ -50,6 +52,9 @@ const panel = $('panel');
 const panelToggle = $('panel-toggle');
 const panelBody = $('panel-body');
 const panelFoot = $('panel-foot');
+const panelClose = $('panel-close');
+const CLOSABLE = new Set(['building', 'room', 'food', 'login', 'mine']);
+const ACCOUNT_VIEWS = new Set(['login', 'mine']);
 
 const state = {
   campus: null,
@@ -293,7 +298,7 @@ function initMap() {
     attributionControl: {
       compact: true,
       customAttribution:
-        'Progetto studentesco non ufficiale · Edifici: mappa del campus Unical e <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · Orari: University Planner Unical · <a href="/vendor/licenses.txt" target="_blank" rel="noopener">Licenze</a>',
+        'Progetto studentesco non ufficiale · Edifici: mappa del campus Unical e <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · Orari: University Planner Unical e <a href="https://diam.unical.it/didattica/iscriversi-studiare-laurearsi/orario-delle-lezioni/" target="_blank" rel="noopener">Dipartimento di Ingegneria dell\'Ambiente</a> · <a href="/vendor/licenses.txt" target="_blank" rel="noopener">Licenze</a>',
     },
     locale: {
       'NavigationControl.ZoomIn': 'Avvicina',
@@ -434,28 +439,33 @@ function flyTo(key) {
   const place = state.places.get(key);
   if (!place || !state.map) return;
   const mobile = window.innerWidth <= 720;
+  const covered = panel.classList.contains('tall') ? 0.85 : 0.55;
   state.map.easeTo({
     center: place.center,
     zoom: Math.max(state.map.getZoom(), 16.6),
     duration: 700,
-    padding: mobile ? { bottom: window.innerHeight * 0.55, top: 0, left: 0, right: 0 } : { left: 400, top: 0, bottom: 0, right: 0 },
+    padding: mobile ? { bottom: window.innerHeight * covered, top: 0, left: 0, right: 0 } : { left: 400, top: 0, bottom: 0, right: 0 },
   });
 }
 
 // ---------- navigation ----------
 
+// Every view opens here. Login and account views exist only when this page may sign in (accounts "all").
 function show(view) {
+  if (ACCOUNT_VIEWS.has(view.name) && !accountsEnabled()) return false;
   state.history.push(state.view);
   if (state.history.length > 30) state.history.shift();
   state.view = view;
-  setCollapsed(false);
+  // On a phone a detail takes most of the screen, the map stays visible above it.
+  setSheet(phone.matches && CLOSABLE.has(view.name) ? 'tall' : 'normal');
   render();
-  panelBody.scrollTop = 0;
+  return true;
 }
 
 function back() {
   state.view = state.history.pop() || { name: 'home' };
   select(state.view.key || null);
+  if (!CLOSABLE.has(state.view.name) && sheetSize() === 'tall') setSheet('normal');
   render();
 }
 
@@ -463,16 +473,93 @@ function closeDetail() {
   state.history = [];
   state.view = { name: 'home' };
   select(null);
-  render();
-  panelBody.scrollTop = 0;
   // On a phone the map is the point: closing a detail also lowers the sheet.
-  if (window.innerWidth <= 720) setCollapsed(true);
+  setSheet(phone.matches ? 'collapsed' : 'normal');
+  render();
 }
 
-function setCollapsed(collapsed) {
+// Phone sheet sizes: collapsed (head only), normal (58vh), tall (85vh). The desktop panel ignores them.
+function setSheet(size) {
+  const collapsed = size === 'collapsed';
   panel.classList.toggle('collapsed', collapsed);
+  panel.classList.toggle('tall', size === 'tall');
   panelToggle.setAttribute('aria-expanded', String(!collapsed));
   panelToggle.setAttribute('aria-label', collapsed ? 'Apri il pannello' : 'Riduci il pannello');
+}
+
+function sheetSize() {
+  if (panel.classList.contains('collapsed')) return 'collapsed';
+  return panel.classList.contains('tall') ? 'tall' : 'normal';
+}
+
+// ---------- swipe on the phone sheet ----------
+
+// What a vertical drag on the sheet does, dy in px (positive downwards): a size, 'close' or 'stay'.
+// Down: tall to normal, then close the detail (or collapse); up: one size at a time, tall only for a detail.
+// Self-contained: test/sheet.test.ts runs it on its own.
+function sheetGesture(dy, closable, size) {
+  if (dy > 60) {
+    if (size === 'tall') return 'normal';
+    return closable ? 'close' : 'collapsed';
+  }
+  if (dy < -60) {
+    if (size === 'collapsed') return 'normal';
+    return closable && size === 'normal' ? 'tall' : 'stay';
+  }
+  return 'stay';
+}
+
+// Drags start on the handle or on the bare parts of the head, never on its controls.
+const NO_DRAG = 'input, select, textarea, a, label, .filters, button:not(.panel-toggle)';
+const phone = window.matchMedia('(max-width: 720px)');
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let drag = null;
+let dragMoved = false;
+let settle = null;
+
+function endDrag(e, cancelled) {
+  if (!drag || e.pointerId !== drag.id) return;
+  const { dy, moved } = drag;
+  drag = null;
+  if (panel.hasPointerCapture(e.pointerId)) panel.releasePointerCapture(e.pointerId);
+  panel.classList.remove('dragging');
+  if (!moved) return;
+  const outcome = cancelled ? 'stay' : sheetGesture(dy, CLOSABLE.has(state.view.name), sheetSize());
+  const from = panel.getBoundingClientRect().top;
+  panel.style.transform = '';
+  if (outcome === 'close') closeDetail();
+  else if (outcome !== 'stay') setSheet(outcome);
+  const offset = from - panel.getBoundingClientRect().top;
+  if (!reducedMotion.matches && Math.abs(offset) >= 1) {
+    settle = panel.animate([{ transform: `translateY(${offset}px)` }, { transform: 'none' }], { duration: 200, easing: 'ease-out' });
+  }
+}
+
+function bindSheetDrag() {
+  panel.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary) return;
+    drag = null;
+    dragMoved = false;
+    if (!phone.matches || e.button !== 0) return;
+    if (!e.target.closest('.panel-toggle, .panel-head') || e.target.closest(NO_DRAG)) return;
+    drag = { id: e.pointerId, y: e.clientY, dy: 0, moved: false };
+  });
+  panel.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (e.buttons === 0) return endDrag(e, true);
+    drag.dy = e.clientY - drag.y;
+    if (!drag.moved) {
+      if (Math.abs(drag.dy) < 6) return;
+      drag.moved = dragMoved = true;
+      settle?.cancel();
+      panel.classList.add('dragging');
+      panel.setPointerCapture(e.pointerId);
+    }
+    // Down follows the finger; up gives only a little, the sheet cannot leave the bottom edge.
+    panel.style.transform = `translateY(${drag.dy > 0 ? drag.dy : Math.max(drag.dy / 4, -16)}px)`;
+  });
+  panel.addEventListener('pointerup', (e) => endDrag(e, false));
+  panel.addEventListener('pointercancel', (e) => endDrag(e, true));
 }
 
 function openBuilding(key) {
@@ -514,10 +601,15 @@ async function loadRoom(view) {
 
 // ---------- rendering ----------
 
+// The same view drawn again (fresh data, a message) keeps its scroll position; a new view starts at the top.
+let renderedView = null;
+
 function render() {
   const v = state.view;
+  const top = renderedView === v ? panelBody.scrollTop : 0;
   for (const c of [...panel.classList]) if (c.startsWith('view-')) panel.classList.remove(c);
   panel.classList.add(`view-${v.name}`);
+  panelClose.hidden = !CLOSABLE.has(v.name);
   panelBody.replaceChildren();
   if (state.status && !isFresh()) {
     panelBody.append(el('div', { className: 'notice notice-stale' }, 'Non riesco ad aggiornare i dati: per sicurezza le aule sono mostrate in grigio.'));
@@ -526,9 +618,11 @@ function render() {
   else if (v.name === 'room') renderRoom(v);
   else if (v.name === 'food') renderFood(v);
   else if (v.name === 'search') renderSearch(v);
-  else if (v.name === 'login') renderLogin(v);
-  else if (v.name === 'mine') renderMine(v);
+  else if (v.name === 'login' && accountsEnabled()) renderLogin(v);
+  else if (v.name === 'mine' && accountsEnabled()) renderMine(v);
   else renderHome();
+  renderedView = v;
+  panelBody.scrollTop = top;
 }
 
 // Texts made of parts are joined by " · " with each part in its own span, so a theme can style them.
@@ -595,13 +689,10 @@ function placeRow(place) {
   );
 }
 
+// Closing lives in the panel head (#panel-close); here only the way back.
 function detailNav() {
-  return el(
-    'div',
-    { className: 'detail-nav' },
-    state.history.length > 0 ? el('button', { className: 'back', type: 'button', on: { click: back } }, '‹ Indietro') : null,
-    el('button', { className: 'close', type: 'button', 'aria-label': 'Chiudi', on: { click: closeDetail } }, '×'),
-  );
+  if (state.history.length === 0) return;
+  panelBody.append(el('div', { className: 'detail-nav' }, el('button', { className: 'back', type: 'button', on: { click: back } }, '‹ Indietro')));
 }
 
 function renderHome() {
@@ -668,7 +759,7 @@ function renderBuilding(v) {
   const place = state.places.get(v.key);
   const rooms = (state.status?.rooms || []).filter((r) => r.buildingKey === v.key);
   const category = place && place.category ? CATEGORY_TEXT[place.category] : null;
-  panelBody.append(detailNav());
+  detailNav();
   panelBody.append(
     el(
       'div',
@@ -780,7 +871,6 @@ function lessonItem(l, now, onNotHeld, view) {
   if (running) classes.push('running');
   if (l.notHeld) classes.push('not-held');
   const meta = parts([
-    ['lesson-teacher', l.teachers.join(', ')],
     ['lesson-year', l.year ? `${l.year}° anno` : null],
     ['lesson-course', l.courses[0] ? prettyTitle(l.courses[0]) : null],
   ]);
@@ -810,7 +900,7 @@ function lessonItem(l, now, onNotHeld, view) {
 
 function renderRoom(v) {
   const room = state.status?.rooms.find((r) => r.id === v.id) || v.data?.room;
-  panelBody.append(detailNav());
+  detailNav();
   if (!room) {
     panelBody.append(v.error ? el('div', { className: 'notice error' }, 'Aula non trovata negli orari caricati.') : el('p', { className: 'muted' }, 'Caricamento…'));
     return;
@@ -903,28 +993,17 @@ function renderRoom(v) {
   panelBody.append(list);
 }
 
-const REPORT_ERRORS = {
-  duplicate: 'Hai già fatto questa segnalazione.',
-  rate_limited: 'Hai raggiunto il limite di 20 segnalazioni al giorno.',
-  too_many_pending: 'Hai già diverse segnalazioni in attesa: aspetta che un moderatore le controlli.',
-  window: 'Non è più possibile fare questa segnalazione.',
-  unauthorized: 'Sessione scaduta: accedi di nuovo.',
-  accounts_disabled: 'Le segnalazioni non sono attive in questo momento.',
-  not_found: 'Aula non trovata negli orari caricati.',
-};
-
 async function submitReport(view, roomId, kind, extra = {}) {
   if (view.report && view.report.sending) return;
   view.report = { sending: true };
   render();
   try {
-    await authed('/api/requests', { method: 'POST', body: { roomId, kind, ...extra } });
+    await reportRoom(roomId, kind, extra);
     if (extra.lessonId) (view.reportedLessons ??= new Set()).add(extra.lessonId);
-    view.report = { ok: true, text: 'Segnalazione inviata, grazie. La vedrà un moderatore.' };
+    view.report = { ok: true, text: 'Segnalazione inviata, grazie. La vedrà un moderatore. Sulla mappa può servire fino a un minuto.' };
     loadStatus();
   } catch (err) {
-    const text = err.code === 'invalid' && err.field === 'lesson' ? REPORT_ERRORS.window : REPORT_ERRORS[err.code];
-    view.report = { ok: false, text: text || 'Segnalazione non inviata, riprova.' };
+    view.report = { ok: false, text: messageFor(err.code, REPORT_MESSAGES, 'Segnalazione non inviata, riprova.') };
   }
   if (state.view === view) render();
 }
@@ -977,12 +1056,13 @@ function reportBox(room, v) {
 
 const LOGIN_ERRORS = {
   domain: 'Usa la tua mail @unical.it o @studenti.unical.it.',
+  refused: 'Usa la tua mail @unical.it o @studenti.unical.it.',
   rate_limited: 'Hai già chiesto un link da poco: aspetta un minuto e riprova.',
   error: 'Invio non riuscito, riprova tra poco.',
 };
 
 function renderLogin(v) {
-  panelBody.append(detailNav());
+  detailNav();
   panelBody.append(el('div', { className: 'detail-head detail-login' }, el('h2', {}, 'Accedi'), el('p', {}, 'Ti mandiamo un link alla mail Unical: niente password.')));
   if (v.sent) {
     panelBody.append(el('div', { className: 'notice ok' }, 'Controlla la mail e apri il link da questo browser.'));
@@ -1023,9 +1103,9 @@ function renderLogin(v) {
 
 async function openMine() {
   const view = { name: 'mine', items: null, error: false };
-  show(view);
+  if (!show(view)) return;
   try {
-    view.items = (await authed('/api/requests/mine')).requests;
+    view.items = await myRequests();
   } catch {
     view.error = true;
   }
@@ -1033,7 +1113,7 @@ async function openMine() {
 }
 
 function renderMine(v) {
-  panelBody.append(detailNav());
+  detailNav();
   const admin = state.role === 'moderator' || state.role === 'admin' ? el('a', { className: 'chip admin-link', href: themed('/admin') }, 'Area admin') : null;
   panelBody.append(
     el('div', { className: 'detail-head detail-mine' }, el('h2', {}, 'Le mie segnalazioni')),
@@ -1085,21 +1165,28 @@ function renderMine(v) {
   );
 }
 
+// The account button is created only when this page may sign in: otherwise the map has no way in at all.
+let accountButton = null;
+
 function renderAccount() {
-  const button = $('account');
-  if (!accountsEnabled()) {
-    button.hidden = true;
-    return;
+  if (!accountsEnabled()) return;
+  if (!accountButton) {
+    accountButton = el('button', {
+      type: 'button',
+      id: 'account',
+      className: 'link-btn account-btn',
+      on: { click: () => (signedIn() ? openMine() : show({ name: 'login' })) },
+    });
+    panelClose.before(accountButton);
   }
-  button.hidden = false;
-  button.textContent = signedIn() ? 'Il mio account' : 'Accedi';
+  accountButton.textContent = signedIn() ? 'Il mio account' : 'Accedi';
 }
 
 async function refreshRole() {
   state.role = null;
   if (!signedIn()) return;
   try {
-    state.role = (await authed('/api/me')).role;
+    state.role = await whoamiRole();
   } catch {
     state.role = null;
   }
@@ -1146,7 +1233,7 @@ function renderPlaceInfo(key, fallback) {
 
 function renderFood(v) {
   const place = state.places.get(v.key);
-  panelBody.append(detailNav());
+  detailNav();
   panelBody.append(el('div', { className: 'detail-head detail-food' }, el('h2', {}, place ? place.name : 'Mensa'), el('p', {}, 'Mensa e ristoro')));
   if (place?.note) panelBody.append(el('p', { className: 'muted place-note' }, place.note));
   const info = state.canteens?.places?.[v.key];
@@ -1190,6 +1277,8 @@ function matchPlaces(query) {
   return out;
 }
 
+let searchSeq = 0;
+
 async function runSearch(reset = true) {
   const q = state.query.trim();
   const f = state.filters;
@@ -1206,16 +1295,27 @@ async function runSearch(reset = true) {
   if (f.free) params.set('free', '1');
   if (f.hours) params.set('hours', String(f.hours));
   if (f.seats) params.set('seats', String(f.seats));
-  const view = { name: 'search', results: state.view.name === 'search' && !reset ? state.view.results : null, error: null, places: q ? matchPlaces(q) : [] };
+  // A refresh redraws the same view, so its scroll and the sheet stay as they are; a new search is a new view.
+  const refresh = !reset && state.view.name === 'search';
+  const view = refresh ? state.view : { name: 'search', results: null, error: null, places: [] };
+  view.error = null;
+  view.places = q ? matchPlaces(q) : [];
   state.view = view;
   state.history = [];
-  setCollapsed(false);
+  if (!refresh) setSheet('normal');
   render();
+  // Only the latest request counts, also when a refresh and a new search overlap.
+  const seq = ++searchSeq;
+  let results = null;
+  let error = null;
   try {
-    view.results = await api(`/api/search?${params}`);
+    results = await api(`/api/search?${params}`);
   } catch (err) {
-    view.error = err;
+    error = err;
   }
+  if (seq !== searchSeq) return;
+  if (error) view.error = error;
+  else view.results = results;
   if (state.view === view) render();
 }
 
@@ -1275,10 +1375,24 @@ function renderSearch(v) {
 }
 
 function bindControls() {
-  panelToggle.addEventListener('click', () => setCollapsed(!panel.classList.contains('collapsed')));
+  bindSheetDrag();
+  // After a drag the handle already did its job: only a tap or the keyboard toggles.
+  panelToggle.addEventListener('click', (e) => {
+    if (e.detail > 0 && dragMoved) return;
+    setSheet(sheetSize() === 'collapsed' ? 'normal' : 'collapsed');
+  });
+  // Closing hides the focused control, so keyboard focus moves to what stays on screen.
+  const closeKeepingFocus = () => {
+    closeDetail();
+    (panel.classList.contains('collapsed') ? panelToggle : $('q')).focus();
+  };
+  panelClose.addEventListener('click', (e) => (e.detail === 0 ? closeKeepingFocus() : closeDetail()));
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape' || /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName || '')) return;
-    if (['building', 'room', 'food', 'login', 'mine'].includes(state.view.name)) closeDetail();
+    const focused = document.activeElement;
+    if (e.key !== 'Escape' || /^(INPUT|SELECT|TEXTAREA)$/.test(focused?.tagName || '')) return;
+    if (!CLOSABLE.has(state.view.name)) return;
+    if (focused === panelClose || panelBody.contains(focused)) closeKeepingFocus();
+    else closeDetail();
   });
   const input = $('q');
   input.addEventListener(
@@ -1322,8 +1436,7 @@ async function start() {
   bindControls();
   render();
   renderFoot();
-  $('account').addEventListener('click', () => (signedIn() ? openMine() : show({ name: 'login' })));
-  const auth = await initAuth();
+  const auth = await initAuth('map');
   if (auth.status === 'ready') {
     onSessionChange(() => {
       renderAccount();
@@ -1346,7 +1459,13 @@ async function start() {
   indexPlaces();
   initMap();
   await loadStatus();
-  setInterval(loadStatus, STATUS_REFRESH_MS);
+  // No polling in hidden tabs; back on screen, fresh data at once if the last ones are old.
+  setInterval(() => {
+    if (document.visibilityState !== 'hidden') loadStatus();
+  }, STATUS_REFRESH_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && Date.now() - state.statusAt >= STATUS_REFRESH_MS) loadStatus();
+  });
   setInterval(() => {
     if (!isFresh()) {
       updateMap();

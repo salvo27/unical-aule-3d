@@ -1,48 +1,26 @@
 import { themed } from './theme.js';
 import { el, fmtTime, fmtDay, KIND_LABEL, CATEGORY_LABEL } from './ui.js';
-import { initAuth, signedIn, userId, onSessionChange, sendLoginLink, signOut, authed } from './auth.js';
+import { initAuth, signedIn, userId, onSessionChange, sendLoginLink, signOut } from './auth.js';
+import { whoamiRole, admin } from './data.js';
+import { MESSAGES, messageFor } from './errors.js';
+import { calendarRef, sourceUrlLine } from './refs.js';
 
 const root = document.getElementById('admin');
 
-const MESSAGES = {
-  network: 'Server non raggiungibile.',
-  unauthorized: 'Sessione scaduta: accedi di nuovo.',
-  forbidden: 'Non hai i permessi per questa operazione.',
-  accounts_disabled: 'Gli account non sono attivi su questo server.',
-  not_pending: 'Questa richiesta è già stata decisa.',
-  own_request: 'Non puoi decidere una tua richiesta.',
-  own_role: 'Non puoi cambiare il tuo ruolo.',
-  expired: 'La richiesta è scaduta.',
-  user_missing: 'Utente non trovato.',
-  upstream_unavailable: 'Supabase non raggiungibile.',
-  upstream_error: 'Supabase ha risposto con un errore: riprova tra poco.',
-  no_lesson: 'La lezione non è più negli orari con questi dati: la richiesta si può solo respingere.',
-  role: 'Ruolo non valido.',
-  sync_running: 'Un aggiornamento è già in corso.',
-  calendar_exists: 'Questo calendario è già presente.',
-  calendar_missing: 'Calendario non trovato.',
-  too_many_calendars: 'Hai raggiunto il numero massimo di calendari.',
-  too_many_sources: 'Troppe pagine sorgente (massimo 60).',
-  unknown_building: 'Edificio non presente sulla mappa.',
-  not_found: 'Elemento non trovato.',
-  payload_too_large: 'Richiesta troppo grande.',
-  calendar_ref: 'Link non valido: incolla il link pubblico del Planner o il suo id.',
-  label: 'Nome non valido (1-160 caratteri).',
-  source_url: 'Indirizzo non valido: solo pagine https su unical.it.',
-  floor: 'Piano non valido.',
-  floor_count: 'Numero di piani non valido (1-15).',
-  base_level: 'Dislivello non valido (0-12).',
-};
+const SYNC_WORKFLOW = 'https://github.com/salvo27/unical-aule-3d/actions/workflows/sync.yml';
+const POLL_RUNNING_MS = 10_000;
+const POLL_WAITING_MS = 30_000;
+const POLL_LIMIT_MS = 30 * 60_000;
+const SOURCE_LABEL = { planner: 'Planner', portal: 'Portale', dimes: 'App', xlsx: 'xlsx', pdf: 'PDF' };
 
 function message(err) {
-  if (err && err.code === 'invalid' && err.field && MESSAGES[err.field]) return MESSAGES[err.field];
-  return (err && MESSAGES[err.code]) || 'Operazione non riuscita.';
+  return messageFor(err && err.code);
 }
 
-// The API helper does not expose "field": read it here for clearer messages.
-async function call(path, options) {
+// Every database call goes through here: a 401 means the session expired.
+async function call(fn, ...args) {
   try {
-    return await authed(path, options);
+    return await fn(...args);
   } catch (err) {
     if (err.status === 401) {
       overview = null;
@@ -63,8 +41,10 @@ let busy = false;
 let expired = false;
 let flash = null;
 let proposals = null;
+let proposalsAt;
 let onlyUnplaced = true;
 let pollTimer = 0;
+let lastAction = Date.now();
 
 function setFlash(text, kind = 'ok') {
   flash = { text, kind };
@@ -89,16 +69,17 @@ function clearState() {
   users = null;
   found = undefined;
   proposals = null;
+  proposalsAt = undefined;
   clearTimeout(pollTimer);
 }
 
 async function boot() {
-  const auth = await initAuth();
+  const auth = await initAuth('admin');
   if (auth.status === 'error') return retryScreen(MESSAGES.network, () => location.reload());
   if (auth.status === 'disabled') {
     root.replaceChildren(
       el('h1', {}, 'Aule Unical, admin'),
-      el('p', { className: 'muted' }, 'Area admin non attiva: configura SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY sul server.'),
+      el('p', { className: 'muted' }, 'Area admin non disponibile per ora.'),
     );
     return;
   }
@@ -126,7 +107,7 @@ async function boot() {
 async function loadSession() {
   if (!signedIn()) return renderLogin();
   try {
-    role = (await authed('/admin/api/session')).role;
+    role = await whoamiRole();
   } catch (err) {
     if (err.status === 401) {
       expired = true;
@@ -159,19 +140,21 @@ function renderLogin(note) {
           e.preventDefault();
           if (busy) return;
           busy = true;
-          const result = await sendLoginLink(input.value, '/admin').finally(() => (busy = false));
+          const result = await sendLoginLink(input.value, '/admin', { createUser: false }).finally(() => (busy = false));
           message.textContent = result.ok
             ? 'Controlla la mail e apri il link da questo browser.'
             : result.code === 'domain'
-              ? 'Usa la tua mail @unical.it o @studenti.unical.it.'
-              : result.code === 'rate_limited'
-                ? 'Hai già chiesto un link da poco: aspetta un minuto.'
-                : 'Invio non riuscito, riprova.';
+              ? 'Controlla la mail: lettere, numeri, punti e trattini, senza +.'
+              : result.code === 'refused'
+                ? "Questa mail non ha accesso all'area admin."
+                : result.code === 'rate_limited'
+                  ? 'Hai già chiesto un link da poco: aspetta un minuto.'
+                  : 'Invio non riuscito, riprova.';
         },
       },
     },
     el('h1', {}, 'Aule Unical, admin'),
-    el('label', { for: 'email' }, 'Mail Unical'),
+    el('label', { for: 'email' }, 'Mail'),
     input,
     el('button', { className: 'btn login-submit', type: 'submit' }, 'Mandami il link'),
     message,
@@ -183,17 +166,18 @@ function renderLogin(note) {
 async function loadOverview() {
   const user = currentUser;
   try {
-    const nextPending = (await call('/admin/api/requests')).requests;
+    const nextPending = await call(admin.pending);
     let nextOverview = { moderatorOnly: true };
     let nextUsers = null;
     if (role === 'admin') {
-      nextOverview = await call('/admin/api/overview');
-      nextUsers = (await call('/admin/api/staff')).users;
+      nextOverview = await call(admin.overview);
+      nextUsers = await call(admin.staff);
     }
     if (user !== currentUser) return;
     pending = nextPending;
     overview = nextOverview;
     users = nextUsers;
+    if (overview.proposals) keepProposals(overview.proposals);
   } catch (err) {
     if (err.status === 401) return;
     if (err.status === 403) {
@@ -202,23 +186,55 @@ async function loadOverview() {
     }
     if (!overview) return retryScreen(message(err), loadOverview);
     setFlash(message(err), 'error');
+    schedulePoll();
     return;
   }
   render();
-  clearTimeout(pollTimer);
-  if (overview.sync && overview.sync.running) pollTimer = setTimeout(loadOverview, 3000);
+  schedulePoll();
 }
 
-// One operation at a time: every control stays disabled until the page has reloaded its data.
+// The editable copy (selection, labels) is rebuilt only by a new search; added calendars leave it.
+function keepProposals(info) {
+  if (info.at !== proposalsAt) {
+    proposalsAt = info.at;
+    proposals = info.at === null ? null : info.items.map((p) => ({ ...p, selected: true }));
+  } else if (proposals) {
+    const ids = new Set(info.items.map((p) => p.id));
+    proposals = proposals.filter((p) => ids.has(p.id));
+  }
+}
+
+// Fast while a run is open, slower while a request waits for GitHub, never long after the last action.
+function schedulePoll() {
+  clearTimeout(pollTimer);
+  const sync = overview && overview.sync;
+  if (!sync || Date.now() - lastAction > POLL_LIMIT_MS) return;
+  const waiting = sync.requested.sync.pending || sync.requested.discover.pending;
+  const delay = sync.running ? POLL_RUNNING_MS : waiting ? POLL_WAITING_MS : 0;
+  if (delay) pollTimer = setTimeout(poll, delay);
+}
+
+// Do not rebuild the page while an operation runs or someone is typing in it.
+function poll() {
+  const active = document.activeElement;
+  const typing = active && root.contains(active) && active.matches('textarea, select, input:not([type="checkbox"])');
+  if (busy || typing) return schedulePoll();
+  loadOverview();
+}
+
+// One operation at a time: controls stay disabled until the page has reloaded its data.
 async function withBusy(fn) {
   if (busy) return;
   busy = true;
-  for (const control of root.querySelectorAll('button, select, input, textarea')) control.disabled = true;
+  lastAction = Date.now();
+  const locked = [...root.querySelectorAll('button, select, input, textarea')].filter((control) => !control.disabled);
+  for (const control of locked) control.disabled = true;
   try {
     await fn();
   } finally {
     busy = false;
-    for (const control of root.querySelectorAll('button, select, input, textarea')) control.disabled = false;
+    // Controls drawn again meanwhile keep the state the new data gives them.
+    for (const control of locked) control.disabled = false;
   }
 }
 
@@ -239,23 +255,42 @@ function section(name, title, ...children) {
   return el('section', { className: `card card-${name}` }, el('h2', {}, title), ...children);
 }
 
+function waitingNote(request, text) {
+  if (!request.pending) return null;
+  return el('p', { className: 'muted' }, request.at ? `${text} alle ${fmtTime(request.at)}, in attesa.` : `${text}, in attesa.`);
+}
+
+function runOutcome(run) {
+  if (run.outcome === 'completed') return 'completato';
+  return run.failure === 'implausible' ? 'non riuscito (dati scaricati non plausibili, tenuti quelli di prima)' : 'non riuscito';
+}
+
 function syncSection() {
-  const { running, lastRun } = overview.sync;
+  const { running, lastRun, late, requested } = overview.sync;
   const summary = lastRun
-    ? `Ultimo aggiornamento ${when(lastRun.finishedAt)}: ${lastRun.outcome === 'completed' ? 'completato' : 'non riuscito'}, ${lastRun.ok} calendari scaricati, ${lastRun.failed} con errori.`
+    ? `Ultimo aggiornamento ${when(lastRun.finishedAt || lastRun.startedAt)}: ${runOutcome(lastRun)}, ${lastRun.ok} calendari scaricati, ${lastRun.failed} con errori.`
     : 'Nessun aggiornamento ancora eseguito.';
   return section(
     'sync',
     'Aggiornamento orari',
+    late
+      ? el(
+          'div',
+          { className: 'notice error' },
+          "L'ultimo aggiornamento riuscito è di più di 26 ore fa. Controlla il workflow sync su GitHub: dopo 60 giorni senza attività nel repository GitHub lo disattiva. ",
+          el('a', { href: SYNC_WORKFLOW, rel: 'noopener noreferrer' }, 'Apri il workflow'),
+        )
+      : null,
     el('p', { className: 'sync-summary' }, summary),
+    waitingNote(requested.sync, 'Aggiornamento richiesto'),
     el('p', { className: 'muted' }, 'Gli orari si aggiornano da soli più volte al giorno. Usa il bottone dopo aver cambiato i calendari.'),
     el(
       'button',
       {
         className: 'btn sync-run',
         type: 'button',
-        disabled: running,
-        on: { click: () => act(() => call('/admin/api/sync', { method: 'POST', body: {} }), 'Aggiornamento avviato.') },
+        disabled: running || requested.sync.pending,
+        on: { click: () => act(() => call(admin.requestSync), "Richiesta registrata: l'aggiornamento parte entro circa 20 minuti.") },
       },
       running ? 'Aggiornamento in corso…' : 'Aggiorna adesso',
     ),
@@ -279,6 +314,7 @@ function calendarsSection() {
       'tr',
       {},
       el('td', {}, c.label, el('div', { className: 'mono' }, c.id)),
+      el('td', {}, Object.hasOwn(SOURCE_LABEL, c.source) ? SOURCE_LABEL[c.source] : '-', c.source !== 'planner' && c.ref ? el('div', { className: 'mono' }, c.ref) : null),
       el('td', { className: `cal-status cal-${calendarState(c)}` }, calendarStatus(c)),
       el('td', { className: 'num' }, c.run ? String(c.run.lessons) : '-'),
       el('td', {}, c.fetchedAt ? when(c.fetchedAt) : '-'),
@@ -289,7 +325,7 @@ function calendarsSection() {
           type: 'checkbox',
           checked: c.active,
           'aria-label': `Calendario attivo: ${c.label}`,
-          on: { change: (e) => act(() => call(`/admin/api/calendars/${c.id}`, { method: 'PATCH', body: { active: e.target.checked } })) },
+          on: { change: (e) => act(() => call(admin.setCalendarActive, c.id, e.target.checked)) },
         }),
       ),
       el(
@@ -302,7 +338,7 @@ function calendarsSection() {
             type: 'button',
             on: {
               click: () => {
-                if (confirm(`Rimuovere "${c.label}"?`)) act(() => call(`/admin/api/calendars/${c.id}`, { method: 'DELETE' }), 'Calendario rimosso.');
+                if (confirm(`Rimuovere "${c.label}"?`)) act(() => call(admin.removeCalendar, c.id), 'Calendario rimosso.');
               },
             },
           },
@@ -312,7 +348,7 @@ function calendarsSection() {
     ),
   );
   const ref = el('input', { type: 'text', placeholder: 'Link pubblico del Planner o id', maxlength: '500', required: true });
-  const name = el('input', { type: 'text', placeholder: 'Nome (es. DIMES · Ing. Informatica · 1° semestre)', maxlength: '160', required: true });
+  const name = el('input', { type: 'text', placeholder: 'Nome (es. DEMACS · Informatica · 1° semestre)', maxlength: '160', required: true });
   const form = el(
     'form',
     {
@@ -320,7 +356,9 @@ function calendarsSection() {
       on: {
         submit: (e) => {
           e.preventDefault();
-          act(() => call('/admin/api/calendars', { method: 'POST', body: { reference: ref.value, label: name.value } }), 'Calendario aggiunto.');
+          const id = calendarRef(ref.value);
+          if (!id) return setFlash(MESSAGES.calendar_ref, 'error');
+          act(() => call(admin.addCalendar, id, name.value.trim()), 'Calendario aggiunto.');
         },
       },
     },
@@ -337,7 +375,7 @@ function calendarsSection() {
       el(
         'table',
         {},
-        el('thead', {}, el('tr', {}, ['Nome', 'Stato', 'Lezioni', 'Ultimo download', 'Attivo', ''].map((h) => el('th', {}, h)))),
+        el('thead', {}, el('tr', {}, ['Nome', 'Fonte', 'Stato', 'Lezioni', 'Ultimo download', 'Attivo', ''].map((h) => el('th', {}, h)))),
         el('tbody', {}, rows),
       ),
     ),
@@ -352,38 +390,31 @@ function discoverSection() {
     const urls = sources.value
       .split('\n')
       .map((s) => s.trim())
-      .filter(Boolean);
-    act(() => call('/admin/api/sources', { method: 'PUT', body: { urls } }), 'Pagine salvate.');
+      .filter(Boolean)
+      .map(sourceUrlLine);
+    act(() => call(admin.setSources, urls), 'Pagine salvate.');
   };
-  const search = () =>
-    withBusy(async () => {
-      flash = { text: 'Ricerca nelle pagine in corso…', kind: 'ok' };
-      try {
-        const res = await call('/admin/api/discover', { method: 'POST', body: {} });
-        proposals = res.found.map((f) => ({ ...f, selected: true }));
-        const failed = res.failures.length ? ` ${res.failures.length} pagine non lette.` : '';
-        flash = { text: `Trovati ${res.found.length} calendari nuovi.${failed}`, kind: 'ok' };
-      } catch (err) {
-        flash = { text: message(err), kind: 'error' };
-      }
-      render();
-    });
+  const discover = overview.sync.requested.discover;
+  const info = overview.proposals;
+  const search = () => act(() => call(admin.requestDiscover), 'Ricerca richiesta: i calendari trovati compaiono qui entro circa 20 minuti.');
   const addSelected = () =>
     withBusy(async () => {
       let added = 0;
       let failed = 0;
       for (const p of proposals.filter((x) => x.selected)) {
         try {
-          await call('/admin/api/calendars', { method: 'POST', body: { reference: p.id, label: p.label } });
+          await call(admin.addCalendar, p.id, p.label.trim());
           added += 1;
-        } catch {
+        } catch (err) {
+          if (err.status === 401) return;
           failed += 1;
         }
       }
-      proposals = null;
       flash = { text: `Aggiunti ${added} calendari${failed ? `, ${failed} non aggiunti` : ''}. Ricordati di aggiornare gli orari.`, kind: failed ? 'error' : 'ok' };
       await loadOverview();
     });
+  const unread = info.failures.length ? ` ${info.failures.length} pagine non lette.` : '';
+  const result = info.at ? el('p', { className: 'muted' }, `Ultima ricerca ${when(info.at)}. Trovati ${info.items.length} calendari nuovi.${unread}`) : null;
   const list = proposals
     ? el(
         'div',
@@ -409,14 +440,16 @@ function discoverSection() {
   return section(
     'discover',
     'Cerca nuovi calendari',
-    el('p', { className: 'muted' }, 'Pagine dei dipartimenti da leggere, una per riga (solo https su unical.it). A inizio semestre premi "Cerca" e conferma i calendari nuovi.'),
+    el('p', { className: 'muted' }, 'Pagine dei dipartimenti da leggere, una per riga (solo https su unical.it). A inizio semestre premi "Cerca calendari" e conferma i calendari nuovi.'),
     sources,
     el(
       'div',
       { className: 'actions' },
       el('button', { className: 'btn btn-secondary', type: 'button', on: { click: saveSources } }, 'Salva pagine'),
-      el('button', { className: 'btn', type: 'button', on: { click: search } }, 'Cerca'),
+      el('button', { className: 'btn', type: 'button', disabled: discover.pending, on: { click: search } }, 'Cerca calendari'),
     ),
+    waitingNote(discover, 'Ricerca richiesta'),
+    result,
     list,
   );
 }
@@ -439,7 +472,7 @@ function roomsSection() {
         on: {
           change: (e) => {
             const value = e.target.value === '' ? null : Number(e.target.value);
-            act(() => call(`/admin/api/rooms/${r.id}`, { method: 'PUT', body: { floor: value } }));
+            act(() => call(admin.setRoomFloor, r.id, value));
           },
         },
       },
@@ -494,7 +527,7 @@ function buildingsSection() {
         {
           className: 'btn btn-secondary',
           type: 'button',
-          on: { click: () => select.value && act(() => call('/admin/api/building-links', { method: 'PUT', body: { name, key: select.value } }), 'Edificio collegato.') },
+          on: { click: () => select.value && act(() => call(admin.linkBuilding, name, select.value), 'Edificio collegato.') },
         },
         'Collega',
       ),
@@ -506,7 +539,7 @@ function buildingsSection() {
       'li',
       {},
       `${name} → ${names.get(key) || key} `,
-      el('button', { className: 'link-btn', type: 'button', on: { click: () => act(() => call('/admin/api/building-links', { method: 'PUT', body: { name, key: null } })) } }, 'Scollega'),
+      el('button', { className: 'link-btn', type: 'button', on: { click: () => act(() => call(admin.linkBuilding, name, null)) } }, 'Scollega'),
     ),
   );
   const building = campusSelect('Edificio');
@@ -520,10 +553,11 @@ function buildingsSection() {
         submit: (e) => {
           e.preventDefault();
           if (!building.value) return;
-          act(
-            () => call(`/admin/api/buildings/${building.value}`, { method: 'PUT', body: { floors: Number(floors.value), baseLevel: Number(base.value) } }),
-            'Forma salvata.',
-          );
+          const count = Number(floors.value);
+          const level = Number(base.value);
+          if (!Number.isInteger(count)) return setFlash(MESSAGES.floor_count, 'error');
+          if (!Number.isInteger(level)) return setFlash(MESSAGES.base_level, 'error');
+          act(() => call(admin.setBuildingShape, building.value, count, level), 'Forma salvata.');
         },
       },
     },
@@ -555,7 +589,7 @@ function requestsSection() {
   const rows = (pending || []).map((r) => {
     const what = r.kind === 'issue' ? `${KIND_LABEL.issue}: ${CATEGORY_LABEL[r.category] || 'Altro'}` : KIND_LABEL[r.kind];
     const where = r.roomName ? `${r.roomName} (${r.buildingName || 'edificio non indicato'})` : 'Aula non più negli orari';
-    const decide = (decision) => act(() => call(`/admin/api/requests/${r.id}/review`, { method: 'POST', body: { decision } }), decision === 'approved' ? 'Richiesta approvata.' : 'Richiesta respinta.');
+    const decide = (decision) => act(() => call(admin.review, r.id, decision), decision === 'approved' ? 'Richiesta approvata.' : 'Richiesta respinta.');
     return el(
       'tr',
       {},
@@ -596,7 +630,7 @@ function roleSelect(u) {
     'select',
     {
       'aria-label': `Ruolo di ${u.email}`,
-      on: { change: (e) => act(() => call(`/admin/api/users/${u.userId}/role`, { method: 'PUT', body: { role: e.target.value } }), 'Ruolo aggiornato.') },
+      on: { change: (e) => act(() => call(admin.setRole, u.userId, e.target.value), 'Ruolo aggiornato.') },
     },
     ['student', 'moderator', 'admin'].map((r) => el('option', { value: r }, r === 'student' ? 'Studente' : r === 'moderator' ? 'Moderatore' : 'Admin')),
   );
@@ -617,7 +651,7 @@ function usersSection() {
           const value = email.value.trim();
           return withBusy(async () => {
             try {
-              found = (await call('/admin/api/users/lookup', { method: 'POST', body: { email: value } })).user;
+              found = await call(admin.findUser, value);
               flash = null;
             } catch (err) {
               found = undefined;

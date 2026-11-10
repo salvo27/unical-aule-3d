@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="/theme-essenziale.css">
-  <script src="/vendor/supabase.js"></script>
   <script type="module" src="/theme.js"></script>
   <script type="module" src="/app.js"></script>
 </head>
@@ -21,11 +20,11 @@
     <header class="panel-head">
       <div class="head-row">
         <h1 class="brand">Aule Unical</h1>
-        <button type="button" id="account" class="link-btn account-btn" hidden>Accedi</button>
+        <button type="button" id="panel-close" class="panel-close" aria-label="Chiudi" hidden>×</button>
       </div>
       <form class="search" id="search-form" role="search">
         <input id="q" type="search" maxlength="60" autocomplete="off" spellcheck="false"
-               placeholder="Aula, cubo, corso, docente o mensa" aria-label="Cerca">
+               placeholder="Aula, cubo, corso o mensa" aria-label="Cerca">
       </form>
       <div class="filters" role="group" aria-label="Filtri">
         <button type="button" id="f-free" class="chip" aria-pressed="false">Libere adesso</button>

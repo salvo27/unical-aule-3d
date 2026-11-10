@@ -35,13 +35,11 @@ export class ApiError extends Error {
   }
 }
 
-export async function api(path, { method = 'GET', body, token, timeoutMs = 15000 } = {}) {
-  const init = { method, headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(timeoutMs) };
-  if (token) init.headers.Authorization = `Bearer ${token}`;
-  if (body !== undefined) {
-    init.headers['Content-Type'] = 'application/json';
-    init.body = JSON.stringify(body);
-  }
+// Reads of our own origin only (Worker API and static files): GET, no body, no credentials, never an Authorization header.
+// User tokens travel only through supabase-js (auth.js), straight to Supabase.
+export async function api(path, { timeoutMs = 15000 } = {}) {
+  if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//') || path.includes('\\')) throw new ApiError(0, 'invalid');
+  const init = { method: 'GET', headers: { Accept: 'application/json' }, credentials: 'omit', signal: AbortSignal.timeout(timeoutMs) };
   let res;
   try {
     res = await fetch(path, init);
