@@ -28,6 +28,8 @@ select ok(public.hook_before_user_created('{"user":{"email":".m@unical.it"}}') ?
 select ok(public.hook_before_user_created('{"user":{"email":"a..b@unical.it"}}') ? 'error', 'double dot is refused');
 
 -- Access token hook: role in the token, and no token for other domains or passwords.
+-- Mode all lets every Unical user in; 11_access_mode covers the other modes.
+update aule.settings set accounts_mode = 'all';
 select is(
   public.custom_access_token_hook('{"user_id":"10000000-0000-0000-0000-000000000001","authentication_method":"otp","claims":{"sub":"x","email":"studente@studenti.unical.it","amr":[{"method":"otp","timestamp":1}]}}') -> 'claims' ->> 'user_role',
   'student', 'default role in the token is student');
