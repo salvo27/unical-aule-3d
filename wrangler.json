@@ -5,8 +5,8 @@
   "compatibility_date": "2026-10-20",
   "send_metrics": false,
   "vars": {
-    "SUPABASE_URL": "",
-    "SUPABASE_PUBLISHABLE_KEY": "",
+    "SUPABASE_URL": "https://apiurwnssfbgokiqkuoh.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_RC09pRvP0gREMnY214mA8w_eSZGVgzw",
     "ACCOUNTS": "admin"
   },
   "env": {
