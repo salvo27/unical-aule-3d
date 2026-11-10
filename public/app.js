@@ -34,11 +34,8 @@ const STATUS_MAX_AGE_MS = 5 * 60_000;
 const MENSA_PAGE = 'https://www.unical.it/campus/vivere-il-campus/servizio-mensa/';
 const COLORS = {
   free: '#2e9b57',
-  'free-soft': '#a9d9bb',
   busy: '#d64541',
-  'busy-soft': '#f0b3b1',
   unknown: '#9aa1a9',
-  'unknown-soft': '#cfd3d8',
   plinth: '#d9d3c9',
   food: '#e0a33a',
   library: '#3b7dd8',
@@ -161,8 +158,9 @@ function sliceState(building, floor) {
   if (!building) return null;
   const c = building.floors[String(floor)];
   if (c) return aggregate(c);
+  // Rooms without a known floor color, with the same colors, every floor whose rooms are not known.
   const u = building.unplaced;
-  if (u.free + u.busy + u.unknown > 0) return `${aggregate(u)}-soft`;
+  if (u.free + u.busy + u.unknown > 0) return aggregate(u);
   return null;
 }
 
@@ -192,7 +190,7 @@ function buildSlices() {
       let s = sliceState(building, floor);
       if (categoryColor) s = categoryColor;
       else if (!state.status) s = 'unknown';
-      else if (!fresh && s) s = s.endsWith('-soft') ? 'unknown-soft' : 'unknown';
+      else if (!fresh && s) s = 'unknown';
       features.push({
         type: 'Feature',
         geometry: f.geometry,
