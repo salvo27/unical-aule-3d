@@ -1,28 +1,42 @@
 {
   "name": "unical-aule-3d",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Simplified 3D map of the Unical campus showing which rooms are free, from the published University Planner timetables",
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=20.10"
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && node dist/scripts/notices.js",
-    "start": "node dist/src/main.js",
-    "dev": "npm run build && node --env-file=.env dist/src/main.js",
-    "test": "npm run build && node --test dist/test/",
-    "sync": "npm run build && node --env-file=.env dist/src/cli/sync.js",
-    "import-campus": "npm run build && node dist/scripts/import-campus.js",
-    "discover": "npm run build && node --env-file=.env dist/src/cli/discover.js"
+    "typecheck:worker": "tsc -p tsconfig.worker.json",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "db:reset": "supabase db reset --local",
+    "test:db": "supabase test db --local",
+    "sync:db": "npm run build && node --env-file=.env dist/src/cli/sync-db.js",
+    "discover:db": "npm run build && node --env-file=.env dist/src/cli/discover-db.js",
+    "probe:planner": "npm run build && node dist/src/cli/probe-planner.js",
+    "gen:reference": "npm run build && node dist/scripts/gen-reference-sql.js supabase/migrations/20261110090100_reference_data.sql",
+    "build:site": "npm run build && node dist/scripts/build-site.js --mode production",
+    "dev": "npm run build && node --env-file=.dev.vars dist/scripts/build-site.js --mode local && wrangler pages dev site --port 3010",
+    "dev:site": "node --env-file=.dev.vars dist/scripts/build-site.js --mode local",
+    "deploy": "npm run build:site && wrangler pages deploy site --project-name aule-unical --branch main",
+    "import-campus": "npm run build && node dist/scripts/import-campus.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",
-    "maplibre-gl": "^6.17.0"
+    "@xmldom/xmldom": "0.9.12",
+    "fflate": "0.8.3",
+    "maplibre-gl": "^6.17.0",
+    "pg": "8.23.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "5.20261026.1",
     "@types/node": "^20.19.43",
-    "typescript": "^5.9.3"
+    "@types/pg": "8.23.1",
+    "esbuild": "0.28.2",
+    "typescript": "^5.9.3",
+    "wrangler": "4.153.0"
   }
 }
