@@ -26,7 +26,7 @@ revoke create on schema public from aule_reader;
 -- postgres calls the hook from the SQL editor and the tests; only the new owner can grant it.
 set role aule_reader;
 grant execute on function public.accounts_mode() to postgres;
-reset role;
+set role postgres;
 
 -- Same checks as before, then the access mode. A missing or unknown mode refuses every token.
 create or replace function public.custom_access_token_hook(event jsonb)

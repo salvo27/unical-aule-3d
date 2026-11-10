@@ -1047,4 +1047,4 @@ grant execute on function
   aule.config_request_run(text, uuid),
   aule.config_overview()
 to postgres;
-reset role;
+set role postgres;

@@ -750,4 +750,4 @@ revoke create on schema aule from aule_ingest;
 -- postgres runs the rebuild from the SQL editor and the tests; only the new owner can grant it.
 set role aule_ingest;
 grant execute on function aule.refresh_timetable() to postgres;
-reset role;
+set role postgres;
