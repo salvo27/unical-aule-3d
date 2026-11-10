@@ -104,6 +104,29 @@
   white-space: nowrap;
 }
 
+/* above the phone handle, which covers the top of the head */
+:root[data-theme="essenziale"] .panel-close {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: -2px -8px -2px 0;
+  padding: 0 0 2px;
+  border-radius: var(--es-radius);
+  background: none;
+  color: var(--es-ink);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+:root[data-theme="essenziale"] .panel-close:hover { background: var(--es-surface-2); }
+:root[data-theme="essenziale"] .panel-close[hidden] { display: none; }
+
 /* search */
 :root[data-theme="essenziale"] .search input {
   -webkit-appearance: none;
@@ -470,13 +493,9 @@
 
 /* detail views */
 :root[data-theme="essenziale"] .detail-nav {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   gap: 4px;
   margin: 0;
   padding: 8px 12px 4px 8px;
-  background: var(--es-surface);
 }
 
 :root[data-theme="essenziale"] .back {
@@ -491,23 +510,6 @@
 }
 
 :root[data-theme="essenziale"] .back:hover { background: var(--es-surface-2); }
-
-:root[data-theme="essenziale"] .close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0 0 2px;
-  border-radius: var(--es-radius);
-  background: var(--es-surface-2);
-  color: var(--es-ink);
-  font-size: 24px;
-  font-weight: 400;
-  line-height: 1;
-}
-
-:root[data-theme="essenziale"] .close:hover { background: var(--es-line); }
 
 :root[data-theme="essenziale"] .detail-head { padding: 4px 16px 8px; }
 
@@ -1041,7 +1043,7 @@
 
   :root[data-theme="essenziale"] .detail-nav { padding: 6px 8px 2px 4px; }
   :root[data-theme="essenziale"] .back { min-height: 44px; }
-  :root[data-theme="essenziale"] .close { width: 44px; height: 44px; }
+  :root[data-theme="essenziale"] .panel-close { width: 44px; height: 44px; margin: 0 -10px 0 0; }
   :root[data-theme="essenziale"] .lesson .link-btn { min-height: 44px; }
   :root[data-theme="essenziale"] .panel-foot { padding: 6px 16px; }
 

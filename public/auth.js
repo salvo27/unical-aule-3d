@@ -1,5 +1,6 @@
 // Login with a link sent to the Unical mailbox (Supabase Auth). No passwords anywhere.
-import { api } from './ui.js';
+import { api, ApiError } from './ui.js';
+import { errorCode } from './errors.js';
 
 const STORAGE_KEY = 'aule-auth';
 let client = null;
@@ -9,20 +10,42 @@ const listeners = new Set();
 // Same rule as public.is_unical_email in the database: no '+' or '%', no leading, trailing or double dots.
 export const UNICAL_EMAIL = /^[a-z0-9]+([._-][a-z0-9]+)*@(unical\.it|studenti\.unical\.it)$/;
 
-// status: "disabled" (no accounts on this server), "error" (could not ask), "ready".
+// Like supabaseSettings in src/settings.ts: only publishable keys, plain http only from a local page to a local host.
+const PUBLISHABLE = /^sb_publishable_[A-Za-z0-9_-]{10,200}$/;
+const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);
+
+function supabaseUrl(value) {
+  if (typeof value !== 'string' || value.length > 200) return null;
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  const local = url.protocol === 'http:' && LOCAL_HOSTS.has(url.hostname) && LOCAL_HOSTS.has(location.hostname);
+  if ((url.protocol !== 'https:' && !local) || url.username || url.password || url.search || url.hash) return null;
+  if (url.pathname !== '/' && url.pathname !== '') return null;
+  return url.origin;
+}
+
+// status: "disabled" (accounts off on this site), "error" (could not ask or bad configuration), "ready".
 // linkFailed: the page was opened from a login link that did not work.
 export async function initAuth() {
   const params = new URL(location.href).searchParams;
   const fromLink = params.has('code') || params.has('error') || params.has('error_code');
   let config;
   try {
-    config = await api('/api/client-config');
+    config = await api('/client-config.json');
   } catch {
     return { status: 'error', linkFailed: false };
   }
-  if (!config.accounts) return { status: 'disabled', linkFailed: false };
+  const features = config && typeof config === 'object' ? config.features : null;
+  if (!features || typeof features !== 'object' || features.accounts !== true) return { status: 'disabled', linkFailed: false };
+  const url = supabaseUrl(config.supabaseUrl);
+  const key = typeof config.publishableKey === 'string' && PUBLISHABLE.test(config.publishableKey) ? config.publishableKey : null;
+  if (!url || !key) return { status: 'error', linkFailed: false };
   if (!window.supabase || typeof window.supabase.createClient !== 'function') return { status: 'error', linkFailed: false };
-  client = window.supabase.createClient(config.supabaseUrl, config.publishableKey, {
+  client = window.supabase.createClient(url, key, {
     auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: STORAGE_KEY },
   });
   const { data } = await client.auth.getSession();
@@ -52,8 +75,18 @@ export function onSessionChange(fn) {
   listeners.add(fn);
 }
 
-export function token() {
-  return session ? session.access_token : null;
+// One database function through the Data API (POST, the user's token added by supabase-js). Errors are closed codes.
+export async function rpc(fn, args = {}, { timeoutMs = 15000 } = {}) {
+  if (!client) throw new ApiError(0, 'accounts_disabled');
+  let result;
+  try {
+    result = await client.rpc(fn, args).abortSignal(AbortSignal.timeout(timeoutMs));
+  } catch {
+    throw new ApiError(0, 'network');
+  }
+  const { data, error, status } = result || {};
+  if (!result || error) throw new ApiError(status ?? 0, errorCode(error, status));
+  return data;
 }
 
 export async function sendLoginLink(rawEmail, returnPath) {
@@ -85,8 +118,4 @@ export async function signOut() {
     }
     location.reload();
   }
-}
-
-export function authed(path, options = {}) {
-  return api(path, { ...options, token: token() });
 }

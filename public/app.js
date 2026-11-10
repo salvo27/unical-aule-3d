@@ -16,14 +16,16 @@ import {
   CATEGORY_LABEL,
   STATUS_LABEL,
 } from './ui.js';
-import { initAuth, enabled as accountsEnabled, signedIn, onSessionChange, sendLoginLink, signOut, authed } from './auth.js';
+import { initAuth, enabled as accountsEnabled, signedIn, onSessionChange, sendLoginLink, signOut } from './auth.js';
+import { reportRoom, myRequests, whoamiRole } from './data.js';
+import { messageFor, REPORT_MESSAGES } from './errors.js';
 
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 const FALLBACK_STYLE = { version: 8, sources: {}, layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#f2efe9' } }] };
 const FLOOR_H = 3.4;
 const GAP = 0.45;
 const BRIDGE_LEVEL = 4;
-const STATUS_REFRESH_MS = 60_000;
+const STATUS_REFRESH_MS = 120_000;
 const STATUS_MAX_AGE_MS = 5 * 60_000;
 const MENSA_PAGE = 'https://www.unical.it/campus/vivere-il-campus/servizio-mensa/';
 const COLORS = {
@@ -50,6 +52,8 @@ const panel = $('panel');
 const panelToggle = $('panel-toggle');
 const panelBody = $('panel-body');
 const panelFoot = $('panel-foot');
+const panelClose = $('panel-close');
+const CLOSABLE = new Set(['building', 'room', 'food', 'login', 'mine']);
 
 const state = {
   campus: null,
@@ -293,7 +297,7 @@ function initMap() {
     attributionControl: {
       compact: true,
       customAttribution:
-        'Progetto studentesco non ufficiale · Edifici: mappa del campus Unical e <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · Orari: University Planner Unical · <a href="/vendor/licenses.txt" target="_blank" rel="noopener">Licenze</a>',
+        'Progetto studentesco non ufficiale · Edifici: mappa del campus Unical e <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · Orari: University Planner Unical e <a href="https://diam.unical.it/didattica/iscriversi-studiare-laurearsi/orario-delle-lezioni/" target="_blank" rel="noopener">Dipartimento di Ingegneria dell\'Ambiente</a> · <a href="/vendor/licenses.txt" target="_blank" rel="noopener">Licenze</a>',
     },
     locale: {
       'NavigationControl.ZoomIn': 'Avvicina',
@@ -475,6 +479,69 @@ function setCollapsed(collapsed) {
   panelToggle.setAttribute('aria-label', collapsed ? 'Apri il pannello' : 'Riduci il pannello');
 }
 
+// ---------- swipe on the phone sheet ----------
+
+// What a vertical drag on the sheet does, dy in px (positive downwards).
+// Self-contained: test/sheet.test.ts runs it on its own.
+function sheetGesture(dy, closable) {
+  if (dy > 60) return closable ? 'close' : 'collapse';
+  if (dy < -60) return 'expand';
+  return 'stay';
+}
+
+// Drags start on the handle or on the bare parts of the head, never on its controls.
+const NO_DRAG = 'input, select, textarea, a, label, .filters, button:not(.panel-toggle)';
+const phone = window.matchMedia('(max-width: 720px)');
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let drag = null;
+let dragMoved = false;
+let settle = null;
+
+function endDrag(e, cancelled) {
+  if (!drag || e.pointerId !== drag.id) return;
+  const { dy, moved } = drag;
+  drag = null;
+  if (panel.hasPointerCapture(e.pointerId)) panel.releasePointerCapture(e.pointerId);
+  panel.classList.remove('dragging');
+  if (!moved) return;
+  const outcome = cancelled ? 'stay' : sheetGesture(dy, CLOSABLE.has(state.view.name));
+  const from = panel.getBoundingClientRect().top;
+  panel.style.transform = '';
+  if (outcome === 'close') closeDetail();
+  else if (outcome !== 'stay') setCollapsed(outcome === 'collapse');
+  const offset = from - panel.getBoundingClientRect().top;
+  if (!reducedMotion.matches && Math.abs(offset) >= 1) {
+    settle = panel.animate([{ transform: `translateY(${offset}px)` }, { transform: 'none' }], { duration: 200, easing: 'ease-out' });
+  }
+}
+
+function bindSheetDrag() {
+  panel.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary) return;
+    drag = null;
+    dragMoved = false;
+    if (!phone.matches || e.button !== 0) return;
+    if (!e.target.closest('.panel-toggle, .panel-head') || e.target.closest(NO_DRAG)) return;
+    drag = { id: e.pointerId, y: e.clientY, dy: 0, moved: false };
+  });
+  panel.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    if (e.buttons === 0) return endDrag(e, true);
+    drag.dy = e.clientY - drag.y;
+    if (!drag.moved) {
+      if (Math.abs(drag.dy) < 6) return;
+      drag.moved = dragMoved = true;
+      settle?.cancel();
+      panel.classList.add('dragging');
+      panel.setPointerCapture(e.pointerId);
+    }
+    // Down follows the finger; up gives only a little, the sheet cannot leave the bottom edge.
+    panel.style.transform = `translateY(${drag.dy > 0 ? drag.dy : Math.max(drag.dy / 4, -16)}px)`;
+  });
+  panel.addEventListener('pointerup', (e) => endDrag(e, false));
+  panel.addEventListener('pointercancel', (e) => endDrag(e, true));
+}
+
 function openBuilding(key) {
   show({ name: 'building', key });
   select(key);
@@ -518,6 +585,7 @@ function render() {
   const v = state.view;
   for (const c of [...panel.classList]) if (c.startsWith('view-')) panel.classList.remove(c);
   panel.classList.add(`view-${v.name}`);
+  panelClose.hidden = !CLOSABLE.has(v.name);
   panelBody.replaceChildren();
   if (state.status && !isFresh()) {
     panelBody.append(el('div', { className: 'notice notice-stale' }, 'Non riesco ad aggiornare i dati: per sicurezza le aule sono mostrate in grigio.'));
@@ -595,13 +663,10 @@ function placeRow(place) {
   );
 }
 
+// Closing lives in the panel head (#panel-close); here only the way back.
 function detailNav() {
-  return el(
-    'div',
-    { className: 'detail-nav' },
-    state.history.length > 0 ? el('button', { className: 'back', type: 'button', on: { click: back } }, '‹ Indietro') : null,
-    el('button', { className: 'close', type: 'button', 'aria-label': 'Chiudi', on: { click: closeDetail } }, '×'),
-  );
+  if (state.history.length === 0) return;
+  panelBody.append(el('div', { className: 'detail-nav' }, el('button', { className: 'back', type: 'button', on: { click: back } }, '‹ Indietro')));
 }
 
 function renderHome() {
@@ -668,7 +733,7 @@ function renderBuilding(v) {
   const place = state.places.get(v.key);
   const rooms = (state.status?.rooms || []).filter((r) => r.buildingKey === v.key);
   const category = place && place.category ? CATEGORY_TEXT[place.category] : null;
-  panelBody.append(detailNav());
+  detailNav();
   panelBody.append(
     el(
       'div',
@@ -810,7 +875,7 @@ function lessonItem(l, now, onNotHeld, view) {
 
 function renderRoom(v) {
   const room = state.status?.rooms.find((r) => r.id === v.id) || v.data?.room;
-  panelBody.append(detailNav());
+  detailNav();
   if (!room) {
     panelBody.append(v.error ? el('div', { className: 'notice error' }, 'Aula non trovata negli orari caricati.') : el('p', { className: 'muted' }, 'Caricamento…'));
     return;
@@ -903,28 +968,17 @@ function renderRoom(v) {
   panelBody.append(list);
 }
 
-const REPORT_ERRORS = {
-  duplicate: 'Hai già fatto questa segnalazione.',
-  rate_limited: 'Hai raggiunto il limite di 20 segnalazioni al giorno.',
-  too_many_pending: 'Hai già diverse segnalazioni in attesa: aspetta che un moderatore le controlli.',
-  window: 'Non è più possibile fare questa segnalazione.',
-  unauthorized: 'Sessione scaduta: accedi di nuovo.',
-  accounts_disabled: 'Le segnalazioni non sono attive in questo momento.',
-  not_found: 'Aula non trovata negli orari caricati.',
-};
-
 async function submitReport(view, roomId, kind, extra = {}) {
   if (view.report && view.report.sending) return;
   view.report = { sending: true };
   render();
   try {
-    await authed('/api/requests', { method: 'POST', body: { roomId, kind, ...extra } });
+    await reportRoom(roomId, kind, extra);
     if (extra.lessonId) (view.reportedLessons ??= new Set()).add(extra.lessonId);
-    view.report = { ok: true, text: 'Segnalazione inviata, grazie. La vedrà un moderatore.' };
+    view.report = { ok: true, text: 'Segnalazione inviata, grazie. La vedrà un moderatore. Sulla mappa può servire fino a un minuto.' };
     loadStatus();
   } catch (err) {
-    const text = err.code === 'invalid' && err.field === 'lesson' ? REPORT_ERRORS.window : REPORT_ERRORS[err.code];
-    view.report = { ok: false, text: text || 'Segnalazione non inviata, riprova.' };
+    view.report = { ok: false, text: messageFor(err.code, REPORT_MESSAGES, 'Segnalazione non inviata, riprova.') };
   }
   if (state.view === view) render();
 }
@@ -982,7 +1036,7 @@ const LOGIN_ERRORS = {
 };
 
 function renderLogin(v) {
-  panelBody.append(detailNav());
+  detailNav();
   panelBody.append(el('div', { className: 'detail-head detail-login' }, el('h2', {}, 'Accedi'), el('p', {}, 'Ti mandiamo un link alla mail Unical: niente password.')));
   if (v.sent) {
     panelBody.append(el('div', { className: 'notice ok' }, 'Controlla la mail e apri il link da questo browser.'));
@@ -1025,7 +1079,7 @@ async function openMine() {
   const view = { name: 'mine', items: null, error: false };
   show(view);
   try {
-    view.items = (await authed('/api/requests/mine')).requests;
+    view.items = await myRequests();
   } catch {
     view.error = true;
   }
@@ -1033,7 +1087,7 @@ async function openMine() {
 }
 
 function renderMine(v) {
-  panelBody.append(detailNav());
+  detailNav();
   const admin = state.role === 'moderator' || state.role === 'admin' ? el('a', { className: 'chip admin-link', href: themed('/admin') }, 'Area admin') : null;
   panelBody.append(
     el('div', { className: 'detail-head detail-mine' }, el('h2', {}, 'Le mie segnalazioni')),
@@ -1099,7 +1153,7 @@ async function refreshRole() {
   state.role = null;
   if (!signedIn()) return;
   try {
-    state.role = (await authed('/api/me')).role;
+    state.role = await whoamiRole();
   } catch {
     state.role = null;
   }
@@ -1146,7 +1200,7 @@ function renderPlaceInfo(key, fallback) {
 
 function renderFood(v) {
   const place = state.places.get(v.key);
-  panelBody.append(detailNav());
+  detailNav();
   panelBody.append(el('div', { className: 'detail-head detail-food' }, el('h2', {}, place ? place.name : 'Mensa'), el('p', {}, 'Mensa e ristoro')));
   if (place?.note) panelBody.append(el('p', { className: 'muted place-note' }, place.note));
   const info = state.canteens?.places?.[v.key];
@@ -1275,10 +1329,24 @@ function renderSearch(v) {
 }
 
 function bindControls() {
-  panelToggle.addEventListener('click', () => setCollapsed(!panel.classList.contains('collapsed')));
+  bindSheetDrag();
+  // After a drag the handle already did its job: only a tap or the keyboard toggles.
+  panelToggle.addEventListener('click', (e) => {
+    if (e.detail > 0 && dragMoved) return;
+    setCollapsed(!panel.classList.contains('collapsed'));
+  });
+  // Closing hides the focused control, so keyboard focus moves to what stays on screen.
+  const closeKeepingFocus = () => {
+    closeDetail();
+    (panel.classList.contains('collapsed') ? panelToggle : $('q')).focus();
+  };
+  panelClose.addEventListener('click', (e) => (e.detail === 0 ? closeKeepingFocus() : closeDetail()));
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape' || /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName || '')) return;
-    if (['building', 'room', 'food', 'login', 'mine'].includes(state.view.name)) closeDetail();
+    const focused = document.activeElement;
+    if (e.key !== 'Escape' || /^(INPUT|SELECT|TEXTAREA)$/.test(focused?.tagName || '')) return;
+    if (!CLOSABLE.has(state.view.name)) return;
+    if (focused === panelClose || panelBody.contains(focused)) closeKeepingFocus();
+    else closeDetail();
   });
   const input = $('q');
   input.addEventListener(
@@ -1346,7 +1414,13 @@ async function start() {
   indexPlaces();
   initMap();
   await loadStatus();
-  setInterval(loadStatus, STATUS_REFRESH_MS);
+  // No polling in hidden tabs; back on screen, fresh data at once if the last ones are old.
+  setInterval(() => {
+    if (document.visibilityState !== 'hidden') loadStatus();
+  }, STATUS_REFRESH_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && Date.now() - state.statusAt >= STATUS_REFRESH_MS) loadStatus();
+  });
   setInterval(() => {
     if (!isFresh()) {
       updateMap();
