@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(128);
+select plan(136);
 
 -- Runs one statement as a user (null = anon). Result as text, 'ok' for void, or '!<sqlstate>' with the closed code.
 create function pg_temp.as_user(p_user text, q text)
@@ -182,6 +182,31 @@ select throws_ok(format('select aule.config_remove_calendar(%L)', aule.synthetic
   'not even from the SQL editor');
 select is((select count(*)::int from aule.calendars where id = aule.synthetic_id('fffd', 'xlsx|LT|Foglio di prova')), 1,
   'the xlsx feed is still there');
+-- dimes feeds follow the same rule.
+insert into aule.calendars (id, source, ref, label)
+values (aule.synthetic_id('fffd', 'dimes|https://orario.prova.unical.it/'), 'dimes', 'https://orario.prova.unical.it/', 'Orario di prova');
+select is(pg_temp.adm(format('select public.admin_set_calendar_active(%L, false)', aule.synthetic_id('fffd', 'dimes|https://orario.prova.unical.it/'))),
+  'ok', 'an existing dimes feed can be deactivated');
+select is(pg_temp.adm(format('select public.admin_remove_calendar(%L)', aule.synthetic_id('fffd', 'dimes|https://orario.prova.unical.it/'))),
+  '!P0001 invalid', 'admins cannot remove a dimes feed, only deactivate it');
+select throws_ok(format('select aule.config_remove_calendar(%L)', aule.synthetic_id('fffd', 'dimes|https://orario.prova.unical.it/')),
+  'P0001', 'invalid', 'not even from the SQL editor');
+select results_eq(
+  format('select active from aule.calendars where id = %L', aule.synthetic_id('fffd', 'dimes|https://orario.prova.unical.it/')),
+  $$values (false)$$, 'the dimes feed is still there, inactive');
+-- So do pdf feeds whose ref is not a URL; a pdf feed added by an admin can still be removed.
+insert into aule.calendars (id, source, ref, label)
+values (aule.synthetic_id('fffd', 'pdf|prova:0001'), 'pdf', 'prova:0001', 'Orario PDF di prova');
+select is(pg_temp.adm(format('select public.admin_remove_calendar(%L)', aule.synthetic_id('fffd', 'pdf|prova:0001'))),
+  '!P0001 invalid', 'admins cannot remove a pdf feed of a generated migration');
+select throws_ok(format('select aule.config_remove_calendar(%L)', aule.synthetic_id('fffd', 'pdf|prova:0001')),
+  'P0001', 'invalid', 'not even from the SQL editor');
+select is(pg_temp.adm(format('select public.admin_remove_calendar(%L)',
+    aule.synthetic_id('fffd', 'pdf|https://www.unical.it/orario-di-prova.pdf'))),
+  'ok', 'a pdf feed added by an admin can be removed');
+select results_eq(
+  $$select ref from aule.calendars where source = 'pdf' and ref like '%prova%' order by ref$$,
+  $$values ('prova:0001'::text)$$, 'only the generated pdf feed is left');
 
 -- Sources: only canonical https pages on unical.it, duplicates removed, at most 60.
 select is(pg_temp.adm($$select public.admin_set_sources(array['https://dip.unical.it/a', 'https://dip.unical.it/b', 'https://dip.unical.it/a'])$$), 'ok',

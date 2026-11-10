@@ -150,6 +150,7 @@ insert into expected_tbl (tbl, role, privs) values
   ('unique_lessons', 'aule_reader', 'S'), ('unique_lessons', 'aule_ingest', 'SIUD'),
   ('lesson_rooms', 'aule_reader', 'S'), ('lesson_rooms', 'aule_ingest', 'SIUD'),
   ('room_calendars', 'aule_reader', 'S'), ('room_calendars', 'aule_ingest', 'SIUD'),
+  ('feed_rooms', 'aule_ingest', 'SIUD'),
   ('run_requests', 'aule_reader', 'S'), ('run_requests', 'aule_ingest', 'SU'), ('run_requests', 'aule_config', 'SU'),
   ('proposals', 'aule_ingest', 'SIUD'), ('proposals', 'aule_config', 'S'),
   ('discover_state', 'aule_ingest', 'SIUD'), ('discover_state', 'aule_config', 'S'),

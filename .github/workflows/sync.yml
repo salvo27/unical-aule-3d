@@ -96,6 +96,11 @@ jobs:
           package-manager-cache: false
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npx tsc -p tsconfig.json
+      # Without poppler only the PDF feeds fail (grey); the other sources still sync.
+      - name: Poppler for the PDF timetables
+        continue-on-error: true
+        timeout-minutes: 5
+        run: sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends poppler-utils
       - name: Sync
         env:
           SYNC_DB_HOST: ${{ vars.SYNC_DB_HOST }}
