@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "aule-unical",
+  "pages_build_output_dir": "./site",
+  "compatibility_date": "2026-10-20",
+  "send_metrics": false,
+  "vars": {
+    "SUPABASE_URL": "",
+    "SUPABASE_PUBLISHABLE_KEY": "",
+    "ACCOUNTS": "admin"
+  },
+  "env": {
+    "preview": {
+      "vars": {
+        "SUPABASE_URL": "",
+        "SUPABASE_PUBLISHABLE_KEY": "",
+        "ACCOUNTS": "off"
+      }
+    }
+  }
+}
