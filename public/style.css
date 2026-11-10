@@ -23,6 +23,8 @@
 * { box-sizing: border-box; }
 
 html, body { height: 100%; margin: 0; background: var(--surface-alt); }
+/* no pull-to-refresh on the map: a reload brings it back to its first view */
+:root:has(#map), :root:has(#map) body { overscroll-behavior-y: none; }
 
 #map { position: absolute; inset: 0; }
 
@@ -247,6 +249,8 @@ html, body { height: 100%; margin: 0; background: var(--surface-alt); }
   border-radius: 10px;
   box-shadow: var(--shadow);
   font-size: 12px;
+  /* a drag from here must not pull the page */
+  touch-action: none;
 }
 
 .legend span { display: flex; align-items: center; gap: 8px; }
@@ -258,6 +262,7 @@ html, body { height: 100%; margin: 0; background: var(--surface-alt); }
 .sw-food { background: var(--food); }
 
 .maplibregl-ctrl-attrib { font-size: 11px; }
+.maplibregl-ctrl-group { touch-action: none; }
 
 @media (max-width: 720px) {
   .panel {
