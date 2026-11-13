@@ -1,7 +1,8 @@
-// Public read API: GET /api/status, /api/rooms/:id, /api/search. Validates, caches for 60 s, calls one Supabase RPC.
+// Public read API: GET /api/status, /api/rooms/:id, /api/search, /api/courses, /api/timetable.
+// Validates, caches for 60 s, calls one Supabase RPC.
 // Any other path belongs to the Pages static assets.
 import { ValidationError } from '../domain/errors.js';
-import { plannerId, isoDay, dayCount, searchText, minFreeHours, minSeats } from '../domain/primitives.js';
+import { plannerId, isoDay, dayCount, searchText, minFreeHours, minSeats, courseKeys, type IsoDay } from '../domain/primitives.js';
 import { romeDay, addDays } from '../availability/time.js';
 import { securityHeaders } from '../http/headers.js';
 import type { Bytes, MemoryCache } from './cache.js';
@@ -72,6 +73,16 @@ function errorKind(err: unknown): string {
   return /^[A-Za-z]{1,40}$/.test(name) ? name : 'unknown';
 }
 
+// from: a day within 21 days of today in Rome (today when absent). days: 1 to 14.
+function dayWindow(q: URLSearchParams, now: number, defaultDays: number): { from: IsoDay; days: number } {
+  const today = romeDay(now);
+  const fromRaw = q.get('from');
+  const from = fromRaw === null ? today : isoDay(fromRaw);
+  if (from < addDays(today, -21) || from > addDays(today, 21)) throw new ValidationError('day');
+  const daysRaw = q.get('days');
+  return { from, days: daysRaw === null ? defaultDays : dayCount(daysRaw) };
+}
+
 // Unknown parameters are ignored; the cache key holds only validated values.
 function route(url: URL, now: number): Call | null {
   const path = url.pathname;
@@ -81,12 +92,7 @@ function route(url: URL, now: number): Call | null {
   const room = ROOM_PATH.exec(path);
   if (room) {
     const id = plannerId(room[1]);
-    const today = romeDay(now);
-    const fromRaw = q.get('from');
-    const from = fromRaw === null ? today : isoDay(fromRaw);
-    if (from < addDays(today, -21) || from > addDays(today, 21)) throw new ValidationError('day');
-    const daysRaw = q.get('days');
-    const days = daysRaw === null ? 1 : dayCount(daysRaw);
+    const { from, days } = dayWindow(q, now, 1);
     return { fn: 'room_lessons', args: { p_room_id: id, p_from: from, p_days: days }, key: `rooms/${id}/${from}/${days}` };
   }
 
@@ -109,6 +115,18 @@ function route(url: URL, now: number): Call | null {
       args: { p_query: query, p_free: free === '1', p_hours: hours, p_seats: seats },
       key: `search?${key}`,
     };
+  }
+
+  if (path === '/api/courses') {
+    const query = searchText(q.get('q'));
+    return { fn: 'search_courses', args: { p_query: query }, key: `courses?${new URLSearchParams({ q: query })}` };
+  }
+
+  if (path === '/api/timetable') {
+    const keys = courseKeys(q.get('keys'));
+    const { from, days } = dayWindow(q, now, 7);
+    const key = new URLSearchParams({ days: String(days), from, keys: keys.join(',') });
+    return { fn: 'course_timetable', args: { p_keys: keys, p_from: from, p_days: days }, key: `timetable?${key}` };
   }
   return null;
 }

@@ -14,6 +14,8 @@ const PROD_ENV: WorkerEnv = { SUPABASE_URL: 'https://abcdefghijklmnop.supabase.c
 const T0 = Date.UTC(2026, 10, 16, 10, 30); // 11:30 in Rome
 const ROOM = 'aaaaaaaaaaaaaaaaaaaaaaaa';
 const BODY = '{"rooms": [ ],\n  "note":"città \\u00e8"}';
+const KEY_A = '0a1b2c3d4e5f60718293a4b5c6d7e8f9';
+const KEY_B = 'ffffffffffffffffffffffffffffffff';
 const MB = 1_048_576;
 
 interface Call {
@@ -611,5 +613,177 @@ test('package scripts deploy only main to the Pages project and serve the same s
   assert.equal(scripts['dev:site'], 'node --env-file=.dev.vars dist/scripts/build-site.js --mode local');
   for (const [name, command] of Object.entries(scripts)) {
     assert.ok(!/wrangler (deploy|dev|login)\b/.test(command), name);
+  }
+});
+
+test('courses: a missing or invalid query gives 400 and never reaches Supabase', async () => {
+  const s = setup();
+  for (const path of ['/api/courses', '/api/courses?q=', '/api/courses?q=%20%20', '/api/courses?q=%01analisi', '/api/courses?Q=analisi',
+    `/api/courses?q=${'a'.repeat(81)}`, `/api/courses?q=${'a'.repeat(61)}`, '/api/courses?q=a%0Ab']) {
+    const res = await s.get(path);
+    assert.equal(res.status, 400, path);
+    assert.deepEqual(await res.json(), { error: 'invalid', field: 'search' }, path);
+    assertHeaders(res, false);
+  }
+  assert.equal(s.calls.length, 0);
+});
+
+test('courses: the normalized query is the only argument and the cache key', async () => {
+  const shared = fakeCache();
+  const s = setup({ cache: shared.cache });
+  const res = await s.get('/api/courses?q=%20Analisi%20%20Matem%C3%A0tica%20&x=1&free=1');
+  assert.equal(res.status, 200);
+  assert.deepEqual(await bytesOf(res), Buffer.from(BODY));
+  assertHeaders(res, false);
+  assert.equal(res.headers.has('Access-Control-Allow-Origin'), false);
+  await s.get('/api/courses?q=analisi%20matematica');
+  await s.get('/api/courses?q=ANALISI+MATEMATICA&q=other');
+  await s.get(`/api/courses?q=${'a'.repeat(60)}`);
+  await s.get('/api/courses?q=%25_');
+  await Promise.all(s.pending);
+  assert.deepEqual(
+    s.calls.map((c) => [c.url, c.init.body]),
+    [
+      ['http://127.0.0.1:54321/rest/v1/rpc/search_courses', '{"p_query":"analisi matematica"}'],
+      ['http://127.0.0.1:54321/rest/v1/rpc/search_courses', `{"p_query":"${'a'.repeat(60)}"}`],
+      ['http://127.0.0.1:54321/rest/v1/rpc/search_courses', '{"p_query":"%_"}'],
+    ],
+  );
+  assert.deepEqual(shared.puts, [
+    'https://127.0.0.1/__aule_cache/v1/courses?q=analisi+matematica',
+    `https://127.0.0.1/__aule_cache/v1/courses?q=${'a'.repeat(60)}`,
+    'https://127.0.0.1/__aule_cache/v1/courses?q=%25_',
+  ]);
+  // A room search with the same text is another entry.
+  await s.get('/api/search?q=analisi%20matematica');
+  assert.equal(s.calls.length, 4);
+});
+
+test('timetable: invalid keys, days and window give 400 with the field and never reach Supabase', async () => {
+  const thirteen = Array.from({ length: 13 }, (_, i) => i.toString(16).repeat(32)).join(',');
+  const cases: [string, string][] = [
+    ['/api/timetable', 'course_keys'],
+    ['/api/timetable?keys=', 'course_keys'],
+    ['/api/timetable?from=2026-11-16&days=7', 'course_keys'],
+    [`/api/timetable?KEYS=${KEY_A}`, 'course_keys'],
+    [`/api/timetable?keys=${thirteen}`, 'course_keys'],
+    [`/api/timetable?keys=${Array<string>(13).fill(KEY_A).join(',')}`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A.toUpperCase()}`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A.slice(1)}`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A}0`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A},`, 'course_keys'],
+    [`/api/timetable?keys=,${KEY_A}`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A},,${KEY_B}`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A};${KEY_B}`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A}%20${KEY_B}`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A}+${KEY_B}`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A}%7C${KEY_B}`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A}%2C%20${KEY_B}`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A}%0A`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A.slice(1)}%25`, 'course_keys'],
+    [`/api/timetable?keys=${'g'.repeat(32)}`, 'course_keys'],
+    [`/api/timetable?keys=${KEY_A}&from=2026-12-08`, 'day'],
+    [`/api/timetable?keys=${KEY_A}&from=2026-10-25`, 'day'],
+    [`/api/timetable?keys=${KEY_A}&from=2026-02-30`, 'day'],
+    [`/api/timetable?keys=${KEY_A}&from=16-11-2026`, 'day'],
+    [`/api/timetable?keys=${KEY_A}&from=`, 'day'],
+    [`/api/timetable?keys=${KEY_A}&days=0`, 'days'],
+    [`/api/timetable?keys=${KEY_A}&days=15`, 'days'],
+    [`/api/timetable?keys=${KEY_A}&days=-1`, 'days'],
+    [`/api/timetable?keys=${KEY_A}&days=7.0`, 'days'],
+    [`/api/timetable?keys=${KEY_A}&days=`, 'days'],
+  ];
+  const s = setup();
+  for (const [path, field] of cases) {
+    const res = await s.get(path);
+    assert.equal(res.status, 400, path);
+    assert.deepEqual(await res.json(), { error: 'invalid', field }, path);
+    assertHeaders(res, false);
+  }
+  assert.equal(s.calls.length, 0);
+});
+
+test('timetable: defaults, edges and sorted keys without duplicates reach Supabase', async () => {
+  const twelve = Array.from({ length: 12 }, (_, i) => i.toString(16).repeat(32));
+  const s = setup();
+  const paths = [
+    `/api/timetable?keys=${KEY_A}`,
+    `/api/timetable?keys=${KEY_B},${KEY_A},${KEY_B}&from=2026-10-26&days=1`,
+    `/api/timetable?keys=${[...twelve].reverse().join('%2C')}&from=2026-12-07&days=14`,
+  ];
+  for (const path of paths) {
+    const res = await s.get(path);
+    assert.equal(res.status, 200, path);
+    assert.deepEqual(await bytesOf(res), Buffer.from(BODY));
+    assertHeaders(res, false);
+  }
+  assert.deepEqual(
+    s.calls.map((c) => [c.url, c.init.body]),
+    [
+      ['http://127.0.0.1:54321/rest/v1/rpc/course_timetable', `{"p_keys":["${KEY_A}"],"p_from":"2026-11-16","p_days":7}`],
+      ['http://127.0.0.1:54321/rest/v1/rpc/course_timetable', `{"p_keys":["${KEY_A}","${KEY_B}"],"p_from":"2026-10-26","p_days":1}`],
+      ['http://127.0.0.1:54321/rest/v1/rpc/course_timetable', `{"p_keys":${JSON.stringify(twelve)},"p_from":"2026-12-07","p_days":14}`],
+    ],
+  );
+  for (const { init } of s.calls) {
+    assert.deepEqual(init.headers, { apikey: KEY, 'Content-Type': 'application/json', Accept: 'application/json' });
+  }
+});
+
+test('timetable: key order, duplicates, defaults and unknown parameters share one cache entry', async () => {
+  const shared = fakeCache();
+  const s = setup({ cache: shared.cache });
+  await s.get(`/api/timetable?keys=${KEY_A},${KEY_B}`);
+  await s.get(`/api/timetable?keys=${KEY_B},${KEY_A}`);
+  await s.get(`/api/timetable?keys=${KEY_B},${KEY_A},${KEY_A}&days=7&from=2026-11-16&teachers=1`);
+  await s.get(`/api/timetable?from=2026-11-16&keys=${KEY_A}%2C${KEY_B}&keys=${KEY_B}`);
+  await Promise.all(s.pending);
+  assert.equal(s.calls.length, 1);
+  assert.deepEqual(shared.puts, [`https://127.0.0.1/__aule_cache/v1/timetable?days=7&from=2026-11-16&keys=${KEY_A}%2C${KEY_B}`]);
+  await s.get(`/api/timetable?keys=${KEY_A}`);
+  await s.get(`/api/timetable?keys=${KEY_A},${KEY_B}&days=8`);
+  await s.get(`/api/timetable?keys=${KEY_A},${KEY_B}&from=2026-11-17`);
+  assert.equal(s.calls.length, 4);
+  // The default day follows the clock in Rome: after midnight it is another entry.
+  s.advance(13 * 3_600_000);
+  await s.get(`/api/timetable?keys=${KEY_A},${KEY_B}`);
+  assert.equal(s.calls.length, 5);
+  assert.equal(s.calls[4]!.init.body, `{"p_keys":["${KEY_A}","${KEY_B}"],"p_from":"2026-11-17","p_days":7}`);
+});
+
+test('courses and timetable: only GET, exact paths, upstream errors mapped like the other routes', async () => {
+  const p0001 = (message: string) => json(JSON.stringify({ code: 'P0001', details: null, hint: null, message }), 400);
+  const s = setup();
+  for (const path of ['/api/courses/', '/api/timetable/', `/api/timetable/${KEY_A}`, '/api/courses/analisi', '/api/Courses?q=a']) {
+    const res = await s.get(path);
+    assert.equal(res.status, 404, path);
+    assert.deepEqual(await res.json(), { error: 'not_found' }, path);
+  }
+  for (const path of ['/api/courses?q=analisi', `/api/timetable?keys=${KEY_A}`]) {
+    const res = await s.get(path, { method: 'POST', body: '{}' });
+    assert.equal(res.status, 405, path);
+    assert.equal(res.headers.get('Allow'), 'GET');
+  }
+  assert.equal(s.calls.length, 0);
+
+  // Reply, answer status and code, then the logged upstream status and code (null: nothing logged).
+  const cases: [() => Response | Promise<Response>, number, string, [number, string] | null][] = [
+    [() => p0001('invalid'), 400, 'invalid', null],
+    [() => p0001('internal'), 502, 'upstream_error', [400, 'P0001']],
+    [() => json('{}', 500), 503, 'upstream_unavailable', [500, 'status']],
+    [() => Promise.reject(new TypeError('fetch failed')), 503, 'upstream_unavailable', [0, 'network']],
+  ];
+  for (const [path, fn] of [['/api/courses?q=segreto', 'search_courses'], [`/api/timetable?keys=${KEY_A}`, 'course_timetable']] as const) {
+    for (const [reply, status, code, logged] of cases) {
+      const failing = setup({ reply });
+      const res = await failing.get(path);
+      assert.equal(res.status, status, `${path} ${code}`);
+      assert.deepEqual(await res.json(), { error: code });
+      assertHeaders(res, false);
+      assert.deepEqual(failing.logs, logged === null ? [] : [JSON.stringify({ event: 'upstream_failed', fn, status: logged[0], code: logged[1] })]);
+      // Errors are never cached.
+      failing.state.reply = () => json(BODY);
+      assert.equal((await failing.get(path)).status, 200);
+    }
   }
 });

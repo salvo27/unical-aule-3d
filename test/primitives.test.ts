@@ -14,10 +14,14 @@ import {
   minSeats,
   minFreeHours,
   dayCount,
+  courseKey,
+  courseKeys,
 } from '../src/domain/primitives.js';
 import { ValidationError } from '../src/domain/errors.js';
 
 const ID = '6878c95c4c1e05001fd31126';
+const KEY_A = '0a1b2c3d4e5f60718293a4b5c6d7e8f9';
+const KEY_B = 'ffffffffffffffffffffffffffffffff';
 
 function rejects(fn: () => unknown, code: string): void {
   assert.throws(fn, (err: unknown) => err instanceof ValidationError && err.code === code);
@@ -138,4 +142,52 @@ test('query numbers: seats, hours, days', () => {
   assert.equal(dayCount('7'), 7);
   rejects(() => dayCount('15'), 'days');
   rejects(() => dayCount(''), 'days');
+});
+
+test('courseKey accepts 32 lowercase hex chars only', () => {
+  assert.equal(courseKey(KEY_A), KEY_A);
+  rejects(() => courseKey(''), 'course_key');
+  rejects(() => courseKey(KEY_A.slice(1)), 'course_key');
+  rejects(() => courseKey(KEY_A + '0'), 'course_key');
+  rejects(() => courseKey(KEY_A.toUpperCase()), 'course_key');
+  rejects(() => courseKey('g' + KEY_A.slice(1)), 'course_key');
+  rejects(() => courseKey(KEY_A.slice(1) + '\n'), 'course_key');
+  rejects(() => courseKey(null), 'course_key');
+  rejects(() => courseKey([KEY_A]), 'course_key');
+  rejects(() => courseKey('a'.repeat(100_000)), 'course_key');
+});
+
+test('courseKeys splits on commas, drops duplicates and sorts', () => {
+  assert.deepEqual(courseKeys(KEY_A), [KEY_A]);
+  assert.deepEqual(courseKeys(`${KEY_B},${KEY_A}`), [KEY_A, KEY_B]);
+  assert.deepEqual(courseKeys(`${KEY_B},${KEY_A},${KEY_B},${KEY_A}`), [KEY_A, KEY_B]);
+  const twelve = Array.from({ length: 12 }, (_, i) => i.toString(16).repeat(32));
+  assert.deepEqual(courseKeys([...twelve].reverse().join(',')), twelve);
+  assert.deepEqual(courseKeys(Array<string>(12).fill(KEY_A).join(',')), [KEY_A]);
+});
+
+test('courseKeys rejects empty, too many, malformed keys and other separators', () => {
+  const code = 'course_keys';
+  rejects(() => courseKeys(null), code);
+  rejects(() => courseKeys(undefined), code);
+  rejects(() => courseKeys([KEY_A]), code);
+  rejects(() => courseKeys(''), code);
+  rejects(() => courseKeys(','), code);
+  rejects(() => courseKeys(Array.from({ length: 13 }, (_, i) => i.toString(16).repeat(32)).join(',')), code);
+  rejects(() => courseKeys(Array<string>(13).fill(KEY_A).join(',')), code);
+  rejects(() => courseKeys(KEY_A.toUpperCase()), code);
+  rejects(() => courseKeys(KEY_A.slice(1)), code);
+  rejects(() => courseKeys(KEY_A + '0'), code);
+  rejects(() => courseKeys(`${KEY_A},${KEY_B.slice(1)}`), code);
+  rejects(() => courseKeys(`${KEY_A},`), code);
+  rejects(() => courseKeys(`,${KEY_A}`), code);
+  rejects(() => courseKeys(`${KEY_A},,${KEY_B}`), code);
+  rejects(() => courseKeys(`${KEY_A}, ${KEY_B}`), code);
+  rejects(() => courseKeys(` ${KEY_A}`), code);
+  rejects(() => courseKeys(`${KEY_A};${KEY_B}`), code);
+  rejects(() => courseKeys(`${KEY_A} ${KEY_B}`), code);
+  rejects(() => courseKeys(`${KEY_A}|${KEY_B}`), code);
+  rejects(() => courseKeys(`${KEY_A}\n`), code);
+  rejects(() => courseKeys(`${KEY_A.slice(2)}%2`), code);
+  rejects(() => courseKeys(`${KEY_A},`.repeat(100_000)), code);
 });

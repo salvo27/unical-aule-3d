@@ -15,10 +15,13 @@ export type IsoDay = Brand<string, 'IsoDay'>;
 export type SearchText = Brand<string, 'SearchText'>;
 export type SourceUrl = Brand<string, 'SourceUrl'>;
 export type Label = Brand<string, 'Label'>;
+export type CourseKey = Brand<string, 'CourseKey'>;
 
 export const PLANNER_HOST = 'unical.prod.up.cineca.it';
 
 const HEX24 = /^[0-9a-f]{24}$/;
+const HEX32 = /^[0-9a-f]{32}$/;
+const MAX_COURSE_KEYS = 12;
 const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
 
 function hex24(value: unknown, code: string): string {
@@ -148,4 +151,22 @@ export function minFreeHours(value: unknown): number {
 
 export function dayCount(value: unknown): number {
   return queryInteger(value, 1, 14, 'days');
+}
+
+// The md5 that aule.course_key() builds for a course: title text and degree course label.
+export function courseKey(value: unknown): CourseKey {
+  if (typeof value !== 'string' || value.length !== 32 || !HEX32.test(value)) throw new ValidationError('course_key');
+  return value as CourseKey;
+}
+
+// The keys parameter: 1 to 12 keys separated by commas. Duplicates are dropped, the result is sorted.
+export function courseKeys(value: unknown): CourseKey[] {
+  const code = 'course_keys';
+  if (typeof value !== 'string' || value.length < 32 || value.length > MAX_COURSE_KEYS * 33 - 1) throw new ValidationError(code);
+  const parts = value.split(',');
+  if (parts.length > MAX_COURSE_KEYS) throw new ValidationError(code);
+  for (const part of parts) {
+    if (part.length !== 32 || !HEX32.test(part)) throw new ValidationError(code);
+  }
+  return [...new Set(parts)].sort() as CourseKey[];
 }
