@@ -196,8 +196,8 @@ insert into t04 values ('b1', pg_temp.j(pg_temp.as_sync($$select aule_sync.sync_
 select is(pg_temp.rid('b1'), pg_temp.run(), 'begin opens a run and returns its id');
 select is(
   (select array[(v ->> 'from')::bigint, (v ->> 'to')::bigint] from t04 where k = 'b1'),
-  array[aule.ms(aule.rome_midnight(aule.rome_day(now()) - 7)), aule.ms(aule.rome_midnight(aule.rome_day(now()) + 15))],
-  'the window goes from Rome midnight 7 days back to Rome midnight 15 days ahead');
+  array[aule.ms(aule.rome_midnight(aule.rome_day(now()) - 7)), aule.ms(aule.rome_midnight(aule.rome_day(now()) + 45))],
+  'the window goes from Rome midnight 7 days back to Rome midnight 45 days ahead');
 select is(
   (select v -> 'calendars' from t04 where k = 'b1'),
   '[{"id": "111111111111111111111111", "source": "planner", "ref": null},

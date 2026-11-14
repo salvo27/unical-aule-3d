@@ -73,12 +73,17 @@ function errorKind(err: unknown): string {
   return /^[A-Za-z]{1,40}$/.test(name) ? name : 'unknown';
 }
 
-// from: a day within 21 days of today in Rome (today when absent). days: 1 to 14.
-function dayWindow(q: URLSearchParams, now: number, defaultDays: number): { from: IsoDay; days: number } {
+// The map never looks further than three weeks. A course timetable may start up to 60 days ahead, the most the run
+// window may be set to: past the window the days simply hold no lessons.
+const ROOM_DAYS_AHEAD = 21;
+const TIMETABLE_DAYS_AHEAD = 60;
+
+// from: a day from 21 days back to `ahead` days ahead of today in Rome (today when absent). days: 1 to 14.
+function dayWindow(q: URLSearchParams, now: number, defaultDays: number, ahead: number): { from: IsoDay; days: number } {
   const today = romeDay(now);
   const fromRaw = q.get('from');
   const from = fromRaw === null ? today : isoDay(fromRaw);
-  if (from < addDays(today, -21) || from > addDays(today, 21)) throw new ValidationError('day');
+  if (from < addDays(today, -21) || from > addDays(today, ahead)) throw new ValidationError('day');
   const daysRaw = q.get('days');
   return { from, days: daysRaw === null ? defaultDays : dayCount(daysRaw) };
 }
@@ -92,7 +97,7 @@ function route(url: URL, now: number): Call | null {
   const room = ROOM_PATH.exec(path);
   if (room) {
     const id = plannerId(room[1]);
-    const { from, days } = dayWindow(q, now, 1);
+    const { from, days } = dayWindow(q, now, 1, ROOM_DAYS_AHEAD);
     return { fn: 'room_lessons', args: { p_room_id: id, p_from: from, p_days: days }, key: `rooms/${id}/${from}/${days}` };
   }
 
@@ -124,7 +129,7 @@ function route(url: URL, now: number): Call | null {
 
   if (path === '/api/timetable') {
     const keys = courseKeys(q.get('keys'));
-    const { from, days } = dayWindow(q, now, 7);
+    const { from, days } = dayWindow(q, now, 7, TIMETABLE_DAYS_AHEAD);
     const key = new URLSearchParams({ days: String(days), from, keys: keys.join(',') });
     return { fn: 'course_timetable', args: { p_keys: keys, p_from: from, p_days: days }, key: `timetable?${key}` };
   }

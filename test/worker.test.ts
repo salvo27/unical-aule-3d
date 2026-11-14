@@ -682,7 +682,7 @@ test('timetable: invalid keys, days and window give 400 with the field and never
     [`/api/timetable?keys=${KEY_A}%0A`, 'course_keys'],
     [`/api/timetable?keys=${KEY_A.slice(1)}%25`, 'course_keys'],
     [`/api/timetable?keys=${'g'.repeat(32)}`, 'course_keys'],
-    [`/api/timetable?keys=${KEY_A}&from=2026-12-08`, 'day'],
+    [`/api/timetable?keys=${KEY_A}&from=2027-01-16`, 'day'],
     [`/api/timetable?keys=${KEY_A}&from=2026-10-25`, 'day'],
     [`/api/timetable?keys=${KEY_A}&from=2026-02-30`, 'day'],
     [`/api/timetable?keys=${KEY_A}&from=16-11-2026`, 'day'],
@@ -710,6 +710,9 @@ test('timetable: defaults, edges and sorted keys without duplicates reach Supaba
     `/api/timetable?keys=${KEY_A}`,
     `/api/timetable?keys=${KEY_B},${KEY_A},${KEY_B}&from=2026-10-26&days=1`,
     `/api/timetable?keys=${[...twelve].reverse().join('%2C')}&from=2026-12-07&days=14`,
+    // A course timetable may start up to 60 days ahead, further than the 21 days of a room.
+    `/api/timetable?keys=${KEY_A}&from=2026-12-08&days=14`,
+    `/api/timetable?keys=${KEY_A}&from=2027-01-15&days=14`,
   ];
   for (const path of paths) {
     const res = await s.get(path);
@@ -723,6 +726,8 @@ test('timetable: defaults, edges and sorted keys without duplicates reach Supaba
       ['http://127.0.0.1:54321/rest/v1/rpc/course_timetable', `{"p_keys":["${KEY_A}"],"p_from":"2026-11-16","p_days":7}`],
       ['http://127.0.0.1:54321/rest/v1/rpc/course_timetable', `{"p_keys":["${KEY_A}","${KEY_B}"],"p_from":"2026-10-26","p_days":1}`],
       ['http://127.0.0.1:54321/rest/v1/rpc/course_timetable', `{"p_keys":${JSON.stringify(twelve)},"p_from":"2026-12-07","p_days":14}`],
+      ['http://127.0.0.1:54321/rest/v1/rpc/course_timetable', `{"p_keys":["${KEY_A}"],"p_from":"2026-12-08","p_days":14}`],
+      ['http://127.0.0.1:54321/rest/v1/rpc/course_timetable', `{"p_keys":["${KEY_A}"],"p_from":"2027-01-15","p_days":14}`],
     ],
   );
   for (const { init } of s.calls) {

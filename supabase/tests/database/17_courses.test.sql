@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(114);
+select plan(116);
 
 -- Runs one query as aule_reader. Result as text, or '!<sqlstate>' with the message of P0001 errors.
 create function pg_temp.rd(q text)
@@ -330,9 +330,14 @@ select is(pg_temp.tt(array[repeat('a', 32), null]), '!P0001 invalid', 'a null ke
 select is(pg_temp.tt(array[repeat('a', 32), repeat('a', 32)]), '!P0001 invalid', 'a repeated key is invalid');
 select is(pg_temp.tt(array[array[repeat('a', 32)], array[repeat('b', 32)]]), '!P0001 invalid', 'a nested array is invalid');
 select is(
-  array[pg_temp.tt(array[repeat('a', 32)], date '2026-10-25'), pg_temp.tt(array[repeat('a', 32)], date '2026-12-08'),
+  array[pg_temp.tt(array[repeat('a', 32)], date '2026-10-25'), pg_temp.tt(array[repeat('a', 32)], date '2027-01-16'),
     pg_temp.tt(array[repeat('a', 32)], null), pg_temp.tt(array[repeat('a', 32)], date '2019-12-31')],
-  array_fill('!P0001 invalid'::text, array[4]), 'a day more than 21 days away, or missing, is invalid');
+  array_fill('!P0001 invalid'::text, array[4]), 'a day more than 21 days back or 60 days ahead, or missing, is invalid');
+select is(
+  array[pg_temp.tt(array[repeat('a', 32)], date '2026-10-26')::jsonb -> 'lessons', pg_temp.tt(array[repeat('a', 32)], date '2026-12-08')::jsonb -> 'lessons',
+    pg_temp.tt(array[repeat('a', 32)], date '2027-01-15')::jsonb -> 'lessons'],
+  array_fill('[]'::jsonb, array[3]), '21 days back and up to 60 days ahead are accepted, and hold no lessons where nothing was read');
+select is((select window_ahead_days from aule.settings), 45, 'the run window reaches 45 days ahead');
 select is(
   array[pg_temp.tt(array[repeat('a', 32)], date '2026-11-16', 0), pg_temp.tt(array[repeat('a', 32)], date '2026-11-16', 15),
     pg_temp.tt(array[repeat('a', 32)], date '2026-11-16', null), pg_temp.tt(array[repeat('a', 32)], date '2026-11-16', -1)],
