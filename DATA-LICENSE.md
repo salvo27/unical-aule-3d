@@ -9,7 +9,11 @@ La licenza MIT del file `LICENSE` copre solo il codice di questo repository (`sr
 
 ## `public/data/canteens.json` e `public/data/places.json`
 
-Orari, posti e link di mense, biblioteche, aula studio, teatri e cinema, presi dalle pagine pubbliche dell'Università della Calabria e del gestore del cinema e riscritti con parole nostre. Ogni voce indica la fonte e la data di verifica. Gli orari della mensa Maisonnettes Senior sono indicati da chi frequenta il campus e sono segnati come non ufficiali.
+Orari, posti e link di mense, biblioteche, aula studio, teatri, cinema e musei, presi dalle pagine pubbliche dell'Università della Calabria e del gestore del cinema e riscritti con parole nostre. Ogni voce indica la fonte e la data di verifica. Gli orari della mensa Maisonnettes Senior sono indicati da chi frequenta il campus e sono segnati come non ufficiali.
+
+## `/api/cinema`
+
+Titoli, orari e locandine del Cinema Unical restano del gestore del cinema e dei distributori. Il sito li legge dalla pagina pubblica "Sale Unical" di cosenzacinema.it, non li salva e rimanda al sito del cinema e alla sua pagina dei biglietti per l'acquisto: le locandine non passano dal sito, si caricano dal loro server. La pagina dei biglietti (18tickets) non si legge: ai server risponde con una verifica anti-bot, e la scelta del suo gestore va rispettata.
 
 ## `config/seed.json`
 

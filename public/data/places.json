@@ -148,6 +148,124 @@
       ],
       "source": "https://www.unical.it/contents/news/view/19549-un-campus-sempre-piu-vivo-inaugurata-la-nuova-aula-studio-aperta-fino-alle-24-e-nei-weekend/",
       "checkedAt": "9 novembre 2026"
+    },
+    "orto-botanico": {
+      "hours": [
+        {
+          "days": "Lunedì-venerdì",
+          "time": "9:00-13:00"
+        },
+        {
+          "days": "Sabato e domenica",
+          "time": "9:00-17:00"
+        }
+      ],
+      "note": "Piante ed ecosistemi della Calabria, nell'Edificio Polifunzionale di via Savinio. Ingresso gratuito. Gruppi su prenotazione: infomusei@unical.it o 0984 493089.",
+      "links": [
+        {
+          "label": "Orto Botanico",
+          "url": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/orto-botanico/"
+        },
+        {
+          "label": "Aperture nel fine settimana",
+          "url": "https://www.unical.it/contents/news/view/25333-un-campus-da-vivere-sette-giorni-su-sette-biblioteche-e-musei-aperti-anche-nel-weekend/"
+        }
+      ],
+      "source": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/orto-botanico/",
+      "checkedAt": "23 novembre 2026"
+    },
+    "museo-zoologia": {
+      "hours": [
+        {
+          "days": "Lunedì-venerdì",
+          "time": "9:00-13:00"
+        },
+        {
+          "days": "Sabato e domenica",
+          "time": "9:00-17:00"
+        }
+      ],
+      "note": "Al cubo 14B. Ingresso gratuito. Gruppi su prenotazione: infomusei@unical.it.",
+      "links": [
+        {
+          "label": "Museo di Zoologia",
+          "url": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/zoologia/"
+        },
+        {
+          "label": "Aperture nel fine settimana",
+          "url": "https://www.unical.it/contents/news/view/25333-un-campus-da-vivere-sette-giorni-su-sette-biblioteche-e-musei-aperti-anche-nel-weekend/"
+        }
+      ],
+      "source": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/zoologia/",
+      "checkedAt": "23 novembre 2026"
+    },
+    "museo-paleontologia": {
+      "hours": [
+        {
+          "days": "Lunedì-venerdì",
+          "time": "9:00-13:00"
+        }
+      ],
+      "note": "Fossili di piante e animali, al cubo 14B. Ingresso gratuito. Gruppi su prenotazione: infomusei@unical.it o 0984 493685.",
+      "links": [
+        {
+          "label": "Museo di Paleontologia",
+          "url": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/paleontologia/"
+        }
+      ],
+      "source": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/paleontologia/",
+      "checkedAt": "23 novembre 2026"
+    },
+    "museo-mineralogia": {
+      "note": "Minerali e rocce, al cubo 14B. Visite su prenotazione: infomusei@unical.it o 0984 493588.",
+      "links": [
+        {
+          "label": "Museo di Mineralogia e Petrografia",
+          "url": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/mineralogia-e-petrografia/"
+        }
+      ],
+      "source": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/mineralogia-e-petrografia/",
+      "checkedAt": "23 novembre 2026"
+    },
+    "rimuseum": {
+      "hours": [
+        {
+          "days": "Lunedì-giovedì",
+          "time": "9:00-13:00 e 14:00-17:00"
+        },
+        {
+          "days": "Venerdì",
+          "time": "9:00-13:00"
+        },
+        {
+          "days": "Sabato e domenica",
+          "time": "su prenotazione"
+        }
+      ],
+      "note": "Museo per l'ambiente, in via Cavour 1 a Rende, fuori dal campus. Il venerdì pomeriggio su prenotazione. L'ateneo ha annunciato aperture anche nel fine settimana: prima di andare scrivi a infomusei@unical.it o chiama lo 0984 465353.",
+      "links": [
+        {
+          "label": "RiMuseum",
+          "url": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/rimuseum/"
+        },
+        {
+          "label": "Aperture nel fine settimana",
+          "url": "https://www.unical.it/contents/news/view/25333-un-campus-da-vivere-sette-giorni-su-sette-biblioteche-e-musei-aperti-anche-nel-weekend/"
+        }
+      ],
+      "source": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/rimuseum/",
+      "checkedAt": "23 novembre 2026"
+    },
+    "miai": {
+      "note": "Museo Interattivo di Archeologia Informatica: computer d'epoca, console e videogiochi. Visite su prenotazione: infomusei@unical.it.",
+      "links": [
+        {
+          "label": "MIAI",
+          "url": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/miai/"
+        }
+      ],
+      "source": "https://www.unical.it/campus/vivere-il-campus/sistema-museale/miai/",
+      "checkedAt": "23 novembre 2026"
     }
   }
 }

@@ -11,7 +11,8 @@ Online: https://aule-unical.pages.dev
 - **Mappa 3D:** ogni cubo è diviso in piani, colorati in base alle aule: libere, occupate o con dati non aggiornati.
 - **Scheda dell'aula:** piano, posti, servizi, lezioni del giorno o della settimana, fino a quando resta libera o occupata.
 - **Ricerca:** aule, cubi, corsi e mense, con i filtri "libere adesso", "libere per almeno N ore" e "posti minimi".
-- **Servizi del campus:** mense e bar, biblioteche, aula studio, cinema e teatri, con orari e link utili.
+- **Servizi del campus:** mense e bar, biblioteche, aula studio, cinema, teatri e musei, con orari e link utili.
+- **Programma del cinema:** `/api/cinema` dà i film e gli orari della settimana del Cinema Unical, letti dalla pagina pubblica del sito del cinema (cosenzacinema.it) al massimo una volta l'ora.
 - **Posizione:** un bottone mostra dove sei sulla mappa; la posizione resta nel tuo browser.
 - **Dal telefono:** il pannello si apre, si chiude e si trascina, così la mappa resta visibile.
 - **Aggiornamento automatico:** gli orari si aggiornano da soli più volte al giorno.

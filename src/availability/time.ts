@@ -57,3 +57,13 @@ export function mondayOf(day: IsoDay): IsoDay {
   const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
   return addDays(day, -((weekday + 6) % 7));
 }
+
+// The instant of a wall clock time in Rome on a day, right also on the days the clocks change.
+export function romeInstant(day: IsoDay, hour: number, minute: number): number {
+  const [y, m, d] = day.split('-').map(Number) as [number, number, number];
+  const wall = Date.UTC(y, m - 1, d, hour, minute);
+  let t = wall - offsetMs(wall);
+  const corrected = offsetMs(t);
+  if (wall - corrected !== t) t = wall - corrected;
+  return t;
+}

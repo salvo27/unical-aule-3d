@@ -792,3 +792,113 @@ test('courses and timetable: only GET, exact paths, upstream errors mapped like 
     }
   }
 });
+
+const CINEMA_PAGE = 'https://cosenzacinema.it/programmazione-sale-unical/';
+const CINEMA_TIMES = 'https://cosenzacinema.it/wp-admin/admin-ajax.php';
+const CINEMA_HTML = `<div class="amy-movie-item row"> <div class="amy-movie-item-poster"> <a href="https://cosenzacinema.it/movie/film-di-prova/"> <img src="https://cosenzacinema.it/wp-content/uploads/2026/11/prova.jpg"> </a> </div>
+  <h3 class="amy-movie-field-title"><a href="https://cosenzacinema.it/movie/film-di-prova/">Film di Prova</a></h3>
+  <select name="timelist" class="timelist" data-movie="7"> <option value="2026-11-15">15/11/2026</option> <option value="2026-11-16">16/11/2026</option> <option value="2026-11-17">17/11/2026</option> </select> </div>`;
+const TIMES: Readonly<Record<string, string>> = {
+  '2026-11-16': JSON.stringify('<span class="intro-time">20:30</span>'),
+  '2026-11-17': JSON.stringify('<span class="intro-time">17:15</span>\n<span class="intro-time">21:45</span>'),
+};
+
+function html(body: string, status = 200, type = 'text/html; charset=utf-8'): Response {
+  return new Response(body, { status, headers: { 'content-type': type } });
+}
+
+// The cinema's site: the page, then the times of the asked day
+function cinema(call: Call, page: () => Response = () => html(CINEMA_HTML)): Response {
+  if (call.url === CINEMA_PAGE) return page();
+  const day = new URLSearchParams(String(call.init.body)).get('date') ?? '';
+  return html(TIMES[day] ?? JSON.stringify(''), 200, 'text/html; charset=UTF-8');
+}
+
+test('/api/cinema reads the page and the times from today on, with our user agent only, and returns the programme', async () => {
+  const s = setup({ reply: (call) => cinema(call) });
+  const res = await s.get('/api/cinema', { headers: { Cookie: 'sb=secret', Authorization: 'Bearer x' } });
+  assert.equal(res.status, 200);
+  assertHeaders(res, false);
+  assert.deepEqual(await res.json(), {
+    source: CINEMA_PAGE,
+    tickets: 'https://unical.cosenzacinema.18tickets.it/',
+    checkedAt: T0,
+    films: [
+      {
+        title: 'Film di Prova',
+        url: 'https://cosenzacinema.it/movie/film-di-prova/',
+        poster: 'https://cosenzacinema.it/wp-content/uploads/2026/11/prova.jpg',
+        shows: [
+          { at: Date.UTC(2026, 10, 16, 19, 30), room: null, url: null },
+          { at: Date.UTC(2026, 10, 17, 16, 15), room: null, url: null },
+          { at: Date.UTC(2026, 10, 17, 20, 45), room: null, url: null },
+        ],
+      },
+    ],
+  });
+  // The day already gone is not asked for
+  assert.deepEqual(
+    s.calls.map((c) => [c.init.method, c.url, c.init.body ?? null]),
+    [
+      ['GET', CINEMA_PAGE, null],
+      ['POST', CINEMA_TIMES, 'action=amy_movie_ajax_shortcode_showtime_layout_4&movie_id=7&date=2026-11-16'],
+      ['POST', CINEMA_TIMES, 'action=amy_movie_ajax_shortcode_showtime_layout_4&movie_id=7&date=2026-11-17'],
+    ],
+  );
+  for (const call of s.calls) {
+    const sent = [...new Headers(call.init.headers).keys()].sort();
+    assert.ok(sent.every((h) => ['accept', 'content-type', 'user-agent'].includes(h)), sent.join());
+    assert.equal(call.init.redirect, 'manual');
+  }
+});
+
+test('/api/cinema with the slow cache reads the cinema at most once an hour', async () => {
+  const s = setup({ reply: (call) => cinema(call) });
+  s.deps.slow = new MemoryCache({ ttlMs: 60 * 60_000 });
+  for (const step of [0, 20 * 60_000, 39 * 60_000]) {
+    s.advance(step);
+    assert.equal((await s.get('/api/cinema')).status, 200);
+  }
+  assert.equal(s.calls.filter((c) => c.url === CINEMA_PAGE).length, 1);
+  s.advance(2 * 60_000);
+  await s.get('/api/cinema');
+  assert.equal(s.calls.filter((c) => c.url === CINEMA_PAGE).length, 2);
+});
+
+test('/api/cinema: a page that fails, redirects or is not HTML gives 502 or 503 with the reason and a closed log line', async () => {
+  const cases: [Response, number, string, string][] = [
+    [html('', 503), 503, 'status_503', '{"event":"upstream_failed","fn":"cinema_page","status":503,"code":"status"}'],
+    [html('', 202), 502, 'status_202', '{"event":"upstream_failed","fn":"cinema_page","status":202,"code":"status"}'],
+    [html('', 302), 502, 'redirect_302', '{"event":"upstream_failed","fn":"cinema_page","status":302,"code":"redirect"}'],
+    [html('{}', 200, 'application/json'), 502, 'content_type', '{"event":"upstream_failed","fn":"cinema_page","status":200,"code":"content_type"}'],
+  ];
+  for (const [reply, status, detail, log] of cases) {
+    const s = setup({ reply: (call) => cinema(call, () => reply) });
+    const res = await s.get('/api/cinema');
+    assert.equal(res.status, status);
+    assert.deepEqual(await res.json(), { error: status === 503 ? 'upstream_unavailable' : 'upstream_error', detail });
+    assert.deepEqual(s.logs, [log]);
+  }
+});
+
+test('/api/cinema: a day whose times fail is left out; if every day fails it is an outage', async () => {
+  const one = setup({ reply: (call) => (String(call.init.body).endsWith('2026-11-17') ? html('', 500) : cinema(call)) });
+  const res = await one.get('/api/cinema');
+  assert.equal(res.status, 200);
+  assert.deepEqual(
+    (await res.json()).films[0].shows.map((x: { at: number }) => x.at),
+    [Date.UTC(2026, 10, 16, 19, 30)],
+  );
+  const all = setup({ reply: (call) => (call.url === CINEMA_TIMES ? html('', 500) : cinema(call)) });
+  const down = await all.get('/api/cinema');
+  assert.equal(down.status, 503);
+  assert.deepEqual(await down.json(), { error: 'upstream_unavailable', detail: 'times' });
+});
+
+test('/api/cinema logs when films are on the page but none can be read', async () => {
+  const s = setup({ reply: () => html(`<div class="new-layout"><select class="timelist" data-movie="7"></select></div>`) });
+  const res = await s.get('/api/cinema');
+  assert.equal(res.status, 200);
+  assert.deepEqual((await res.json()).films, []);
+  assert.deepEqual(s.logs, ['{"event":"cinema_unreadable"}']);
+});

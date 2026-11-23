@@ -17,11 +17,14 @@ const STATUS: Readonly<Record<UpstreamCode, number>> = { invalid: 400, not_found
 export class UpstreamError extends Error {
   readonly code: UpstreamCode;
   readonly status: number;
-  constructor(code: UpstreamCode) {
+  // Why a page of another site failed, as "status_403" or "redirect_301": the logs of this project cannot be tailed.
+  readonly detail: string | null;
+  constructor(code: UpstreamCode, detail: string | null = null) {
     super(code);
     this.name = 'UpstreamError';
     this.code = code;
     this.status = STATUS[code];
+    this.detail = detail !== null && /^[a-z_]{1,20}(_\d{1,3})?$/.test(detail) ? detail : null;
   }
 }
 
@@ -41,12 +44,12 @@ function text(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
-function transportCode(err: unknown): LogCode {
+export function transportCode(err: unknown): LogCode {
   const name = typeof err === 'object' && err !== null ? (err as { name?: unknown }).name : undefined;
   return name === 'TimeoutError' ? 'timeout' : 'network';
 }
 
-async function discard(res: Response): Promise<void> {
+export async function discard(res: Response): Promise<void> {
   try {
     await res.body?.cancel();
   } catch {

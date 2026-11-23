@@ -1,11 +1,13 @@
-// Public read API: GET /api/status, /api/rooms/:id, /api/search, /api/courses, /api/timetable.
-// Validates, caches for 60 s, calls one Supabase RPC.
+// Public read API: GET /api/status, /api/rooms/:id, /api/search, /api/courses, /api/timetable, /api/cinema.
+// Validates, caches for 60 s, calls one Supabase RPC. /api/cinema reads the cinema ticket office page instead,
+// and keeps it for one hour when the slow cache is given.
 // Any other path belongs to the Pages static assets.
 import { ValidationError } from '../domain/errors.js';
 import { plannerId, isoDay, dayCount, searchText, minFreeHours, minSeats, courseKeys, type IsoDay } from '../domain/primitives.js';
 import { romeDay, addDays } from '../availability/time.js';
 import { securityHeaders } from '../http/headers.js';
 import type { Bytes, MemoryCache } from './cache.js';
+import { loadCinema } from './cinema.js';
 import { BODY_CAP, JSON_TYPE, UpstreamError, callRpc, readCapped, type RpcFn } from './rpc.js';
 
 export interface CacheLike {
@@ -27,6 +29,8 @@ export interface HandlerDeps {
   fetch: typeof fetch;
   cache: CacheLike | null;
   memory: MemoryCache;
+  // For pages of other sites, kept longer than the 60 s of our own data. Without it they share the memory cache.
+  slow?: MemoryCache;
   now: () => number;
   waitUntil: (p: Promise<unknown>) => void;
   log: (line: string) => void;
@@ -50,11 +54,19 @@ const ERRORS = {
 } as const;
 type ErrorCode = keyof typeof ERRORS;
 
-interface Call {
+interface RpcCall {
   fn: RpcFn;
   args: Record<string, unknown>;
   key: string;
 }
+
+interface CinemaCall {
+  fn: 'cinema';
+  key: 'cinema';
+}
+
+type Call = RpcCall | CinemaCall;
+const SLOW_MAX_AGE = 3600;
 
 function respond(status: number, body: Bytes | string, local: boolean, extra: Record<string, string> = {}): Response {
   const headers = new Headers(securityHeaders(!local, null));
@@ -93,6 +105,7 @@ function route(url: URL, now: number): Call | null {
   const path = url.pathname;
   const q = url.searchParams;
   if (path === '/api/status') return { fn: 'room_status', args: {}, key: 'status' };
+  if (path === '/api/cinema') return { fn: 'cinema', key: 'cinema' };
 
   const room = ROOM_PATH.exec(path);
   if (room) {
@@ -136,13 +149,13 @@ function route(url: URL, now: number): Call | null {
   return null;
 }
 
-async function fromCacheApi(cache: CacheLike, key: Request, deps: HandlerDeps): Promise<{ body: Bytes; storedAt: number } | null> {
+async function fromCacheApi(cache: CacheLike, key: Request, memory: MemoryCache, deps: HandlerDeps): Promise<{ body: Bytes; storedAt: number } | null> {
   try {
     const res = await cache.match(key);
     if (!res) return null;
     const stamp = res.headers.get(STORED_AT) ?? '';
     const storedAt = /^\d{1,15}$/.test(stamp) ? Number(stamp) : NaN;
-    if (res.status !== 200 || !JSON_TYPE.test(res.headers.get('content-type') ?? '') || !deps.memory.fresh(storedAt, deps.now())) {
+    if (res.status !== 200 || !JSON_TYPE.test(res.headers.get('content-type') ?? '') || !memory.fresh(storedAt, deps.now())) {
       await res.body?.cancel();
       return null;
     }
@@ -154,25 +167,27 @@ async function fromCacheApi(cache: CacheLike, key: Request, deps: HandlerDeps): 
 }
 
 async function load(call: Call, url: URL, env: WorkerEnv, local: boolean, deps: HandlerDeps): Promise<Bytes> {
-  const hit = deps.memory.get(call.key, deps.now());
+  const memory = (call.fn === 'cinema' ? deps.slow : undefined) ?? deps.memory;
+  const slow = memory !== deps.memory;
+  const hit = memory.get(call.key, deps.now());
   if (hit) return hit;
-  return deps.memory.shared(call.key, async () => {
+  return memory.shared(call.key, async () => {
     const cache = deps.cache;
     const cacheKey = cache ? new Request(`https://${url.hostname}${CACHE_PATH}${call.key}`, { method: 'GET' }) : null;
     if (cache && cacheKey) {
-      const stored = await fromCacheApi(cache, cacheKey, deps);
+      const stored = await fromCacheApi(cache, cacheKey, memory, deps);
       if (stored) {
-        deps.memory.set(call.key, stored.body, stored.storedAt);
+        memory.set(call.key, stored.body, stored.storedAt);
         return stored.body;
       }
     }
     const startedAt = deps.now();
-    const body = await callRpc(env, local, call.fn, call.args, deps);
-    deps.memory.set(call.key, body, startedAt);
+    const body = call.fn === 'cinema' ? await loadCinema(deps) : await callRpc(env, local, call.fn, call.args, deps);
+    memory.set(call.key, body, startedAt);
     if (cache && cacheKey) {
       const copy = new Response(body, {
         status: 200,
-        headers: { 'Cache-Control': 'public, max-age=60', 'Content-Type': 'application/json', [STORED_AT]: String(startedAt) },
+        headers: { 'Cache-Control': `public, max-age=${slow ? SLOW_MAX_AGE : 60}`, 'Content-Type': 'application/json', [STORED_AT]: String(startedAt) },
       });
       // Deferred, so even a put that throws at once (no Cache API, as on *.pages.dev) never fails the request.
       deps.waitUntil(Promise.resolve().then(() => cache.put(cacheKey, copy)).catch(() => undefined));
@@ -193,7 +208,9 @@ export async function handle(request: Request, env: WorkerEnv, deps: HandlerDeps
     return respond(200, await load(call, url, env, local, deps), local);
   } catch (err) {
     if (err instanceof ValidationError) return respond(400, JSON.stringify({ error: 'invalid', field: err.code }), local);
-    if (err instanceof UpstreamError) return failure(err.code, local);
+    if (err instanceof UpstreamError) {
+      return err.detail === null ? failure(err.code, local) : respond(ERRORS[err.code], JSON.stringify({ error: err.code, detail: err.detail }), local);
+    }
     deps.log(JSON.stringify({ event: 'worker_failed', kind: errorKind(err) }));
     return failure('server_error', local);
   }
