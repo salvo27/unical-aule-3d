@@ -19,6 +19,10 @@ Titoli, orari e locandine del Cinema Unical restano del gestore del cinema e dei
 
 Titoli, date, orari e locandine degli spettacoli del Teatro Auditorium Unical e del Piccolo Teatro Unical restano dell'Università della Calabria e degli artisti. Il sito li legge dalle pagine pubbliche "Stagione teatrale" e "PTU" del sito dell'Università, non li salva e rimanda sempre a quelle pagine: le locandine non passano dal sito, si caricano da www.unical.it.
 
+## `/api/notizie`
+
+Titoli, sottotitoli e foto delle notizie e degli avvisi restano dell'Università della Calabria. Il sito li legge dall'elenco pubblico delle news che usa la pagina "Notizie" dell'Ateneo, tiene solo titolo, sottotitolo, data, categoria, foto e link, non salva il testo degli articoli e rimanda sempre alla pagina della news su www.unical.it: le foto non passano dal sito, si caricano da www.unical.it.
+
 ## `config/seed.json`
 
 Identificativi e titoli dei calendari pubblici del University Planner, e indirizzi delle pagine dei dipartimenti che li pubblicano. Sono link pubblicati dall'Ateneo. Il file è lo storico della prima configurazione: quella in uso sta nel database.

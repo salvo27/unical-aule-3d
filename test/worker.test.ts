@@ -957,3 +957,61 @@ test('/api/teatri: with both theatres pages down it is an outage, not "no shows"
   assert.equal(res.status, 503);
   assert.deepEqual(await res.json(), { error: 'upstream_unavailable', detail: 'pages' });
 });
+
+const NEWS = 'https://www.unical.it/api/news/by-context/1';
+const newsItem = (id: number, title: string, start: string, category: number) => ({
+  id: id + 1000,
+  date_start: start,
+  path: `/contents/news/view/${id}-prova/`,
+  publication: { id, title, subheading: null, image: null, category_data: [{ id: category, name: 'x' }] },
+});
+
+function news(call: Call, broken: number[] = []): Response {
+  if (!call.url.startsWith(`${NEWS}?`)) return html('', 404);
+  const category = Number(new URL(call.url).searchParams.get('category'));
+  if (broken.includes(category)) return json('', 503);
+  const items: Record<number, object[]> = {
+    8: [newsItem(1, 'AVVISO DI PROVA', '2026-11-16T09:00:00+01:00', 8)],
+    1: [],
+    9: [newsItem(2, 'NOTIZIA DI PROVA', '2026-11-15T09:00:00+01:00', 9)],
+    12: [],
+  };
+  return json(JSON.stringify({ count: 1, results: items[category] ?? [] }));
+}
+
+test('/api/notizie reads one list per category, sends nothing of the caller, and returns the items newest first', async () => {
+  const s = setup({ reply: (call) => news(call) });
+  const res = await s.get('/api/notizie', { headers: { Cookie: 'sb=secret' } });
+  assert.equal(res.status, 200);
+  assertHeaders(res, false);
+  const body = await res.json();
+  assert.deepEqual(
+    body.items.map((x: { title: string; kinds: string[] }) => [x.title, x.kinds]),
+    [
+      ['AVVISO DI PROVA', ['notice']],
+      ['NOTIZIA DI PROVA', ['news']],
+    ],
+  );
+  assert.deepEqual(
+    s.calls.map((c) => new URL(c.url).searchParams.get('category')),
+    ['8', '1', '9', '12'],
+  );
+  for (const call of s.calls) assert.deepEqual([...new Headers(call.init.headers).keys()].sort(), ['accept', 'user-agent']);
+});
+
+test('/api/notizie: a category down leaves the others; all down is an outage; a changed answer is logged', async () => {
+  const one = setup({ reply: (call) => news(call, [8]) });
+  const res = await one.get('/api/notizie');
+  assert.equal(res.status, 200);
+  assert.deepEqual(
+    (await res.json()).items.map((x: { title: string }) => x.title),
+    ['NOTIZIA DI PROVA'],
+  );
+  const all = setup({ reply: (call) => news(call, [8, 1, 9, 12]) });
+  const down = await all.get('/api/notizie');
+  assert.equal(down.status, 503);
+  assert.deepEqual(await down.json(), { error: 'upstream_unavailable', detail: 'news' });
+  const changed = setup({ reply: () => json('{"detail":"altro"}') });
+  assert.equal((await changed.get('/api/notizie')).status, 503);
+  assert.equal(changed.logs.filter((l) => l === '{"event":"news_unreadable"}').length, 4);
+});

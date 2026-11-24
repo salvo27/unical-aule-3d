@@ -2,7 +2,7 @@ import { serve, type CacheLike, type WorkerEnv } from './handler.js';
 import { MemoryCache } from './cache.js';
 
 const memory = new MemoryCache();
-// Cinema and theatre programmes change a few times a week: their pages are read at most once an hour per isolate.
+// Cinema, theatres and news change a few times a day at most: their pages are read at most once an hour per isolate.
 const slow = new MemoryCache({ ttlMs: 60 * 60_000, maxEntries: 4 });
 
 // The Cache API may be missing or store nothing (*.pages.dev): then the memory cache alone keeps one call per 60 s.

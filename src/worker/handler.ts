@@ -1,6 +1,6 @@
-// Public read API: GET /api/status, /api/rooms/:id, /api/search, /api/courses, /api/timetable, /api/cinema, /api/teatri.
-// Validates, caches for 60 s, calls one Supabase RPC. /api/cinema and /api/teatri read public pages of the cinema and of
-// the University instead, and keep them for one hour when the slow cache is given.
+// Public read API: GET /api/status, /api/rooms/:id, /api/search, /api/courses, /api/timetable, /api/cinema, /api/teatri,
+// /api/notizie. Validates, caches for 60 s, calls one Supabase RPC. /api/cinema, /api/teatri and /api/notizie read public
+// pages of the cinema and of the University instead, and keep them for one hour when the slow cache is given.
 // Any other path belongs to the Pages static assets.
 import { ValidationError } from '../domain/errors.js';
 import { plannerId, isoDay, dayCount, searchText, minFreeHours, minSeats, courseKeys, type IsoDay } from '../domain/primitives.js';
@@ -8,6 +8,7 @@ import { romeDay, addDays } from '../availability/time.js';
 import { securityHeaders } from '../http/headers.js';
 import type { Bytes, MemoryCache } from './cache.js';
 import { loadCinema } from './cinema.js';
+import { loadNews } from './news.js';
 import { loadTheatres } from './theatres.js';
 import { BODY_CAP, JSON_TYPE, UpstreamError, callRpc, readCapped, type RpcFn } from './rpc.js';
 
@@ -62,12 +63,13 @@ interface RpcCall {
 }
 
 interface PagesCall {
-  fn: 'cinema' | 'teatri';
-  key: 'cinema' | 'teatri';
+  fn: 'cinema' | 'teatri' | 'notizie';
+  key: 'cinema' | 'teatri' | 'notizie';
 }
 
 type Call = RpcCall | PagesCall;
-const isPages = (call: Call): call is PagesCall => call.fn === 'cinema' || call.fn === 'teatri';
+const isPages = (call: Call): call is PagesCall => call.fn === 'cinema' || call.fn === 'teatri' || call.fn === 'notizie';
+const PAGES = { cinema: loadCinema, teatri: loadTheatres, notizie: loadNews } as const;
 const SLOW_MAX_AGE = 3600;
 
 function respond(status: number, body: Bytes | string, local: boolean, extra: Record<string, string> = {}): Response {
@@ -109,6 +111,7 @@ function route(url: URL, now: number): Call | null {
   if (path === '/api/status') return { fn: 'room_status', args: {}, key: 'status' };
   if (path === '/api/cinema') return { fn: 'cinema', key: 'cinema' };
   if (path === '/api/teatri') return { fn: 'teatri', key: 'teatri' };
+  if (path === '/api/notizie') return { fn: 'notizie', key: 'notizie' };
 
   const room = ROOM_PATH.exec(path);
   if (room) {
@@ -185,7 +188,7 @@ async function load(call: Call, url: URL, env: WorkerEnv, local: boolean, deps: 
       }
     }
     const startedAt = deps.now();
-    const body = isPages(call) ? await (call.fn === 'cinema' ? loadCinema(deps) : loadTheatres(deps)) : await callRpc(env, local, call.fn, call.args, deps);
+    const body = isPages(call) ? await PAGES[call.fn](deps) : await callRpc(env, local, call.fn, call.args, deps);
     memory.set(call.key, body, startedAt);
     if (cache && cacheKey) {
       const copy = new Response(body, {
