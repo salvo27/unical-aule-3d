@@ -13,6 +13,7 @@ Online: https://aule-unical.pages.dev
 - **Ricerca:** aule, cubi, corsi e mense, con i filtri "libere adesso", "libere per almeno N ore" e "posti minimi".
 - **Servizi del campus:** mense e bar, biblioteche, aula studio, cinema, teatri e musei, con orari e link utili.
 - **Programma del cinema:** `/api/cinema` dà i film e gli orari della settimana del Cinema Unical, letti dalla pagina pubblica del sito del cinema (cosenzacinema.it) al massimo una volta l'ora.
+- **Programma dei teatri:** `/api/teatri` dà i prossimi spettacoli del Teatro Auditorium e del Piccolo Teatro, letti dalle pagine pubbliche dell'Università al massimo una volta l'ora.
 - **Posizione:** un bottone mostra dove sei sulla mappa; la posizione resta nel tuo browser.
 - **Dal telefono:** il pannello si apre, si chiude e si trascina, così la mappa resta visibile.
 - **Aggiornamento automatico:** gli orari si aggiornano da soli più volte al giorno.

@@ -1,6 +1,6 @@
-// Public read API: GET /api/status, /api/rooms/:id, /api/search, /api/courses, /api/timetable, /api/cinema.
-// Validates, caches for 60 s, calls one Supabase RPC. /api/cinema reads the cinema ticket office page instead,
-// and keeps it for one hour when the slow cache is given.
+// Public read API: GET /api/status, /api/rooms/:id, /api/search, /api/courses, /api/timetable, /api/cinema, /api/teatri.
+// Validates, caches for 60 s, calls one Supabase RPC. /api/cinema and /api/teatri read public pages of the cinema and of
+// the University instead, and keep them for one hour when the slow cache is given.
 // Any other path belongs to the Pages static assets.
 import { ValidationError } from '../domain/errors.js';
 import { plannerId, isoDay, dayCount, searchText, minFreeHours, minSeats, courseKeys, type IsoDay } from '../domain/primitives.js';
@@ -8,6 +8,7 @@ import { romeDay, addDays } from '../availability/time.js';
 import { securityHeaders } from '../http/headers.js';
 import type { Bytes, MemoryCache } from './cache.js';
 import { loadCinema } from './cinema.js';
+import { loadTheatres } from './theatres.js';
 import { BODY_CAP, JSON_TYPE, UpstreamError, callRpc, readCapped, type RpcFn } from './rpc.js';
 
 export interface CacheLike {
@@ -60,12 +61,13 @@ interface RpcCall {
   key: string;
 }
 
-interface CinemaCall {
-  fn: 'cinema';
-  key: 'cinema';
+interface PagesCall {
+  fn: 'cinema' | 'teatri';
+  key: 'cinema' | 'teatri';
 }
 
-type Call = RpcCall | CinemaCall;
+type Call = RpcCall | PagesCall;
+const isPages = (call: Call): call is PagesCall => call.fn === 'cinema' || call.fn === 'teatri';
 const SLOW_MAX_AGE = 3600;
 
 function respond(status: number, body: Bytes | string, local: boolean, extra: Record<string, string> = {}): Response {
@@ -106,6 +108,7 @@ function route(url: URL, now: number): Call | null {
   const q = url.searchParams;
   if (path === '/api/status') return { fn: 'room_status', args: {}, key: 'status' };
   if (path === '/api/cinema') return { fn: 'cinema', key: 'cinema' };
+  if (path === '/api/teatri') return { fn: 'teatri', key: 'teatri' };
 
   const room = ROOM_PATH.exec(path);
   if (room) {
@@ -167,7 +170,7 @@ async function fromCacheApi(cache: CacheLike, key: Request, memory: MemoryCache,
 }
 
 async function load(call: Call, url: URL, env: WorkerEnv, local: boolean, deps: HandlerDeps): Promise<Bytes> {
-  const memory = (call.fn === 'cinema' ? deps.slow : undefined) ?? deps.memory;
+  const memory = (isPages(call) ? deps.slow : undefined) ?? deps.memory;
   const slow = memory !== deps.memory;
   const hit = memory.get(call.key, deps.now());
   if (hit) return hit;
@@ -182,7 +185,7 @@ async function load(call: Call, url: URL, env: WorkerEnv, local: boolean, deps: 
       }
     }
     const startedAt = deps.now();
-    const body = call.fn === 'cinema' ? await loadCinema(deps) : await callRpc(env, local, call.fn, call.args, deps);
+    const body = isPages(call) ? await (call.fn === 'cinema' ? loadCinema(deps) : loadTheatres(deps)) : await callRpc(env, local, call.fn, call.args, deps);
     memory.set(call.key, body, startedAt);
     if (cache && cacheKey) {
       const copy = new Response(body, {

@@ -15,6 +15,10 @@ Orari, posti e link di mense, biblioteche, aula studio, teatri, cinema e musei, 
 
 Titoli, orari e locandine del Cinema Unical restano del gestore del cinema e dei distributori. Il sito li legge dalla pagina pubblica "Sale Unical" di cosenzacinema.it, non li salva e rimanda al sito del cinema e alla sua pagina dei biglietti per l'acquisto: le locandine non passano dal sito, si caricano dal loro server. La pagina dei biglietti (18tickets) non si legge: ai server risponde con una verifica anti-bot, e la scelta del suo gestore va rispettata.
 
+## `/api/teatri`
+
+Titoli, date, orari e locandine degli spettacoli del Teatro Auditorium Unical e del Piccolo Teatro Unical restano dell'Università della Calabria e degli artisti. Il sito li legge dalle pagine pubbliche "Stagione teatrale" e "PTU" del sito dell'Università, non li salva e rimanda sempre a quelle pagine: le locandine non passano dal sito, si caricano da www.unical.it.
+
 ## `config/seed.json`
 
 Identificativi e titoli dei calendari pubblici del University Planner, e indirizzi delle pagine dei dipartimenti che li pubblicano. Sono link pubblicati dall'Ateneo. Il file è lo storico della prima configurazione: quella in uso sta nel database.

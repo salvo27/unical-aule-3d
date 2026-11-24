@@ -902,3 +902,58 @@ test('/api/cinema logs when films are on the page but none can be read', async (
   assert.deepEqual((await res.json()).films, []);
   assert.deepEqual(s.logs, ['{"event":"cinema_unreadable"}']);
 });
+
+const THEATRES = 'https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/';
+const SEASON_NEXT = 'https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/stagione-teatrale-2027-28/';
+const SEASON_KNOWN = 'https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/stagione-teatrale-2026-27/';
+const PTU = 'https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/ptu/';
+const showBlock = (title: string, place: string, day: string) =>
+  `<div class="row mb-4"><img src="/media/medias/2026/Prova.webp"/><h4>${title}</h4><p>${place}<br/>${day}<br/>ore 21:00</p></div>`;
+
+function theatres(call: Call, broken: string[] = []): Response {
+  if (broken.includes(call.url)) return html('', 503);
+  if (call.url === THEATRES) return html(`<a href="https://www.unical.it/campus/vivere-il-campus/teatri-e-cinema/stagione-teatrale-2027-28/">Stagione</a>`);
+  if (call.url === SEASON_NEXT || call.url === SEASON_KNOWN) return html(showBlock('CONCERTO DI PROVA', 'TAU - Teatro Auditorium Unical', 'Martedì 17 novembre 2026'));
+  if (call.url === PTU) return html(showBlock('PROVA AL PTU', 'PTU - Piccolo Teatro Unical', 'Lunedì 16 novembre 2026'));
+  return html('', 404);
+}
+
+test('/api/teatri reads the season linked from the theatres page and the PTU page, and returns the shows in order', async () => {
+  const s = setup({ reply: (call) => theatres(call) });
+  const res = await s.get('/api/teatri', { headers: { Cookie: 'sb=secret' } });
+  assert.equal(res.status, 200);
+  assertHeaders(res, false);
+  const body = await res.json();
+  assert.deepEqual(body.sources, [SEASON_NEXT, PTU]);
+  assert.deepEqual(
+    body.shows.map((x: { title: string; theatre: string; dates: { at: number }[] }) => [x.title, x.theatre, x.dates[0]?.at]),
+    [
+      ['PROVA AL PTU', 'ptu', Date.UTC(2026, 10, 16, 20, 0)],
+      ['CONCERTO DI PROVA', 'tau', Date.UTC(2026, 10, 17, 20, 0)],
+    ],
+  );
+  assert.deepEqual(
+    s.calls.map((c) => c.url),
+    [THEATRES, SEASON_NEXT, PTU],
+  );
+  for (const call of s.calls) assert.deepEqual([...new Headers(call.init.headers).keys()].sort(), ['accept', 'user-agent']);
+});
+
+test('/api/teatri: without the theatres page it uses the known season; one page down leaves the other theatre', async () => {
+  const s = setup({ reply: (call) => theatres(call, [THEATRES, PTU]) });
+  const res = await s.get('/api/teatri');
+  assert.equal(res.status, 200);
+  assert.deepEqual(
+    (await res.json()).shows.map((x: { title: string }) => x.title),
+    ['CONCERTO DI PROVA'],
+  );
+  assert.ok(s.calls.some((c) => c.url === SEASON_KNOWN));
+  assert.equal(s.logs.length, 2);
+});
+
+test('/api/teatri: with both theatres pages down it is an outage, not "no shows"', async () => {
+  const s = setup({ reply: (call) => theatres(call, [SEASON_NEXT, PTU]) });
+  const res = await s.get('/api/teatri');
+  assert.equal(res.status, 503);
+  assert.deepEqual(await res.json(), { error: 'upstream_unavailable', detail: 'pages' });
+});
