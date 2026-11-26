@@ -31,6 +31,29 @@
     "poli-bistrot": {
       "hours": [{ "days": "Lunedì-sabato", "time": "fino alle 15:00" }],
       "note": "Domenica chiuso. L'orario di apertura non è indicato nella pagina ufficiale."
+    },
+    "bar-mensa-centrale": {
+      "hours": [
+        { "days": "Pranzo, tutti i giorni", "time": "12:00-15:00" },
+        { "days": "Cena, tutti i giorni", "time": "19:00-21:30" }
+      ],
+      "note": "Alla mensa Martensson. Orari da Google Maps.",
+      "official": false
+    },
+    "la-cascina-bistrot": {
+      "hours": [{ "days": "Lunedì-venerdì", "time": "7:30-21:00" }],
+      "note": "La Cascina Bistrot, sul ponte vicino al cubo 23. Sabato e domenica chiuso. Orari da Google Maps.",
+      "official": false
+    },
+    "il-cubo-restaurant": {
+      "hours": [{ "days": "Lunedì-venerdì", "time": "8:00-22:00" }],
+      "note": "Bar e ristorante vicino ai cubi 4 e 6. Sabato e domenica chiuso. Orari da Google Maps.",
+      "official": false
+    },
+    "bar-del-tau": {
+      "hours": [],
+      "note": "Accanto al TAU, sopra il cinema. Gli orari non sono pubblicati.",
+      "official": false
     }
   }
 }
