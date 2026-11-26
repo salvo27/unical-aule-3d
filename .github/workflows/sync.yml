@@ -108,6 +108,18 @@ jobs:
           SYNC_DB_PASSWORD: ${{ secrets.SYNC_DB_PASSWORD }}
           SYNC_TRIGGER: ${{ needs.decide.outputs.trigger }}
         run: node dist/src/cli/sync-db.js
+      # The canteen menu, with the timetables of the morning and of the early afternoon (not on the polls): the files
+      # of today and of the next two weeks. A new period is read on the first run after the University publishes it.
+      # Its own step, so a failed timetable sync does not skip it and a failed menu does not fail the timetables.
+      - name: Menu
+        if: ${{ !cancelled() && needs.decide.outputs.trigger != 'poll' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          SYNC_DB_HOST: ${{ vars.SYNC_DB_HOST }}
+          SYNC_DB_USER: ${{ vars.SYNC_DB_USER }}
+          SYNC_DB_PASSWORD: ${{ secrets.SYNC_DB_PASSWORD }}
+        run: node dist/src/cli/menu-db.js
 
   discover:
     needs: decide

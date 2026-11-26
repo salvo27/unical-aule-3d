@@ -43,8 +43,8 @@ select tables_are('aule', array[
   'settings', 'campus_buildings', 'room_seeds', 'calendars', 'sources', 'room_floors', 'building_shapes', 'building_links',
   'run_requests', 'proposals', 'discover_state', 'discover_failures', 'rooms', 'calendar_data', 'lessons', 'calendar_runs',
   'sync_runs', 'sync_run_calendars', 'staged_calendars', 'staged_lessons', 'staged_rooms', 'unique_lessons', 'lesson_rooms',
-  'room_calendars', 'admin_emails', 'feed_rooms'
-], 'schema aule has exactly the timetable, configuration and admin address tables');
+  'room_calendars', 'admin_emails', 'feed_rooms', 'canteen_menus'
+], 'schema aule has exactly the timetable, configuration, admin address and canteen menu tables');
 select views_are('aule', array['room_view'], 'schema aule has only the room view');
 select is(
   (select count(*)::int from pg_class where relnamespace = 'aule'::regnamespace and relkind in ('r', 'p') and not relrowsecurity),
@@ -81,6 +81,7 @@ select set_eq(
     ('lesson_rooms', 'aule_reader', 'S'), ('lesson_rooms', 'aule_ingest', 'SIUD'),
     ('room_calendars', 'aule_reader', 'S'), ('room_calendars', 'aule_ingest', 'SIUD'),
     ('feed_rooms', 'aule_ingest', 'SIUD'),
+    ('canteen_menus', 'aule_reader', 'S'), ('canteen_menus', 'aule_ingest', 'SIUD'),
     ('run_requests', 'aule_reader', 'S'), ('run_requests', 'aule_ingest', 'SU'), ('run_requests', 'aule_config', 'SU'),
     ('proposals', 'aule_ingest', 'SIUD'), ('proposals', 'aule_config', 'S'),
     ('discover_state', 'aule_ingest', 'SIUD'), ('discover_state', 'aule_config', 'S'),

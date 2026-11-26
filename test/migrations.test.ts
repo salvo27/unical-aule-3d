@@ -5,9 +5,10 @@ import { fileURLToPath } from 'node:url';
 
 const DIR = fileURLToPath(new URL('../../supabase/migrations/', import.meta.url));
 
+// Every migration from the timetable schema on (2026-11-10), later months included.
 function migrations(): { name: string; text: string }[] {
   return readdirSync(DIR)
-    .filter((name) => /^2026111\d*_[a-z0-9_]+\.sql$/.test(name))
+    .filter((name) => /^\d{14}_[a-z0-9_]+\.sql$/.test(name) && name >= '20261110')
     .sort()
     .map((name) => ({ name, text: readFileSync(DIR + name, 'utf8') }));
 }
@@ -135,6 +136,7 @@ test('the new migrations exist', () => {
   const names = migrations().map((m) => m.name);
   assert.ok(names.includes('20261110090000_timetable_schema.sql'));
   assert.ok(names.includes('20261110090100_reference_data.sql'));
+  assert.ok(names.includes('20261127090000_canteen_menu.sql'));
 });
 
 test('no em dash in the new migrations', () => {
@@ -183,7 +185,8 @@ test('no dynamic SQL: execute only in grants and revokes', () => {
 
 test('no unqualified type name in the functions the sync login reaches', () => {
   const functions = syncFunctions();
-  for (const name of ['aule.refresh_timetable', 'aule_sync.sync_begin', 'aule_sync.sync_put_calendar', 'aule_sync.sync_finish']) {
+  for (const name of ['aule.refresh_timetable', 'aule_sync.sync_begin', 'aule_sync.sync_put_calendar', 'aule_sync.sync_finish',
+    'aule_sync.menu_put']) {
     assert.ok(functions.has(name), name);
   }
   const problems: string[] = [];

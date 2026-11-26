@@ -158,8 +158,9 @@ select is(
   0, 'aule_sync can execute no function in public or aule');
 select set_eq(
   $$select p.proname::text from pg_proc p where p.pronamespace = 'aule_sync'::regnamespace$$,
-  array['ping', 'sync_begin', 'sync_put_calendar', 'sync_fail_calendar', 'sync_finish', 'sync_abort', 'discover_begin', 'put_proposals'],
-  'schema aule_sync has exactly the 8 sync functions');
+  array['ping', 'sync_begin', 'sync_put_calendar', 'sync_fail_calendar', 'sync_finish', 'sync_abort', 'discover_begin', 'put_proposals',
+    'menu_put'],
+  'schema aule_sync has exactly the 9 sync functions');
 select is(
   (select count(*)::int from pg_proc p
     where p.pronamespace = 'aule_sync'::regnamespace
@@ -170,7 +171,7 @@ select set_eq(
     cross join unnest(array['public', 'anon', 'authenticated', 'service_role', 'postgres', 'aule_sync', 'aule_reader', 'aule_ingest', 'aule_config']) as r(role)
     where p.pronamespace = 'aule_sync'::regnamespace and has_function_privilege(r.role, p.oid, 'EXECUTE')$$,
   $$select f, r from unnest(array['ping', 'sync_begin', 'sync_put_calendar', 'sync_fail_calendar', 'sync_finish', 'sync_abort',
-      'discover_begin', 'put_proposals']) as f
+      'discover_begin', 'put_proposals', 'menu_put']) as f
     cross join unnest(array['aule_sync', 'aule_ingest']) as r$$,
   'only aule_sync and the owner execute the sync functions');
 select set_eq(

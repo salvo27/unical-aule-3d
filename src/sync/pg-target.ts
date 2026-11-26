@@ -84,6 +84,7 @@ const CALLS = {
   sync_abort: ['bigint', 'text'],
   discover_begin: [],
   put_proposals: ['jsonb'],
+  menu_put: ['jsonb'],
 } as const satisfies Record<string, readonly ('text' | 'bigint' | 'jsonb')[]>;
 
 export type DbFunction = keyof typeof CALLS;

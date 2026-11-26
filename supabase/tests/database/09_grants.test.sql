@@ -43,6 +43,7 @@ insert into expected_fn (sig, owner, definer, grantees) values
   ('public.sync_requests()', 'aule_reader', true, '{anon}'),
   ('public.search_courses(text)', 'aule_reader', true, '{anon}'),
   ('public.course_timetable(text[], date, integer)', 'aule_reader', true, '{anon}'),
+  ('public.canteen_menu(date, integer)', 'aule_reader', true, '{anon}'),
   ('aule_sync.ping()', 'aule_ingest', true, '{aule_sync}'),
   ('aule_sync.sync_begin(text)', 'aule_ingest', true, '{aule_sync}'),
   ('aule_sync.sync_put_calendar(bigint, text, jsonb)', 'aule_ingest', true, '{aule_sync}'),
@@ -51,6 +52,7 @@ insert into expected_fn (sig, owner, definer, grantees) values
   ('aule_sync.sync_abort(bigint, text)', 'aule_ingest', true, '{aule_sync}'),
   ('aule_sync.discover_begin()', 'aule_ingest', true, '{aule_sync}'),
   ('aule_sync.put_proposals(jsonb)', 'aule_ingest', true, '{aule_sync}'),
+  ('aule_sync.menu_put(jsonb)', 'aule_ingest', true, '{aule_sync}'),
   ('aule.plain(text, integer, integer)', 'postgres', false, '{aule_reader,aule_ingest,aule_config}'),
   ('aule.source_url_ok(text)', 'postgres', false, '{aule_reader,aule_ingest,aule_config}'),
   ('aule.all_hex24(text[])', 'postgres', false, '{aule_reader,aule_ingest,aule_config}'),
@@ -75,6 +77,7 @@ insert into expected_fn (sig, owner, definer, grantees) values
   ('aule.is_course(text, text[])', 'aule_reader', false, '{}'),
   ('aule.courses_at(timestamptz, text)', 'aule_reader', false, '{}'),
   ('aule.course_timetable_at(timestamptz, text[], date, integer)', 'aule_reader', false, '{}'),
+  ('aule.canteen_menu_at(timestamptz, date, integer)', 'aule_reader', false, '{}'),
   ('aule.report_window(timestamptz, text, public.request_kind, text)', 'postgres', false, '{}'),
   ('aule.submit_request(text, public.request_kind, public.issue_category, timestamptz, timestamptz, text)', 'postgres', true, '{}'),
   ('aule.current_uid()', 'postgres', true, '{aule_config}'),
@@ -161,6 +164,7 @@ insert into expected_tbl (tbl, role, privs) values
   ('lesson_rooms', 'aule_reader', 'S'), ('lesson_rooms', 'aule_ingest', 'SIUD'),
   ('room_calendars', 'aule_reader', 'S'), ('room_calendars', 'aule_ingest', 'SIUD'),
   ('feed_rooms', 'aule_ingest', 'SIUD'),
+  ('canteen_menus', 'aule_reader', 'S'), ('canteen_menus', 'aule_ingest', 'SIUD'),
   ('run_requests', 'aule_reader', 'S'), ('run_requests', 'aule_ingest', 'SU'), ('run_requests', 'aule_config', 'SU'),
   ('proposals', 'aule_ingest', 'SIUD'), ('proposals', 'aule_config', 'S'),
   ('discover_state', 'aule_ingest', 'SIUD'), ('discover_state', 'aule_config', 'S'),
@@ -209,7 +213,7 @@ select is_empty(
   $$select r.role from checked_roles r where has_schema_privilege(r.role, 'public', 'CREATE')$$,
   'no role creates objects in schema public');
 
--- What aule_sync can reach: its 8 functions. pg_net functions, if the extension is on, are listed (it must be off in the cloud).
+-- What aule_sync can reach: its 9 functions. pg_net functions, if the extension is on, are listed (it must be off in the cloud).
 select diag('pg_net is installed: aule_sync can execute ' || string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text)
     || '. Turn pg_net off in the cloud before giving aule_sync a login.')
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -222,7 +226,7 @@ select set_eq(
       and not (n.nspname = 'net' and exists (select 1 from pg_extension where extname = 'pg_net'))
       and has_schema_privilege('aule_sync', n.oid, 'USAGE') and has_function_privilege('aule_sync', p.oid, 'EXECUTE')$$,
   $$select to_regprocedure(sig)::oid from expected_fn where sig like 'aule\_sync.%'$$,
-  'aule_sync can execute exactly the 8 functions of schema aule_sync');
+  'aule_sync can execute exactly the 9 functions of schema aule_sync');
 
 -- Default privileges: new objects in public are closed to anon, authenticated and PUBLIC.
 create function public.probe_grants() returns integer language sql set search_path = '' as $$ select 1 $$;

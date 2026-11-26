@@ -90,6 +90,28 @@ export interface ReadPdfOptions {
   bin?: () => Promise<PopplerBin | null>;
 }
 
+// The text of a PDF as pdftotext -layout writes it: columns kept by spaces, pages split by form feeds.
+// Same limits as readPdf; used by files that are one table per page, like the canteen menu.
+export async function layoutText(bytes: Uint8Array, options: Pick<ReadPdfOptions, 'maxPages' | 'bin'> = {}): Promise<string> {
+  if (bytes.length > MAX_PDF_BYTES) throw new PdfError('too_large');
+  if (!isPdf(bytes)) throw new PdfError('not_pdf');
+  const maxPages = options.maxPages ?? MAX_PAGES;
+  const bin = await (options.bin ?? popplerBin)();
+  if (!bin) throw new PdfError('poppler_missing');
+  const deadline = Date.now() + FILE_DEADLINE_MS;
+  const dir = await mkdtemp(join(tmpdir(), 'aule-pdf-'));
+  try {
+    const pdf = join(dir, 'in.pdf');
+    await writeFile(pdf, bytes, { flag: 'wx', mode: 0o600 });
+    // One page more than allowed, so a longer file is seen and refused without reading all of it.
+    const text = await run(bin.pdftotext, ['-f', '1', '-l', String(maxPages + 1), '-layout', '-enc', 'UTF-8', pdf, '-'], dir, deadline, MAX_TEXT_OUTPUT);
+    if (text.split('\f').filter((page) => page.trim() !== '').length > maxPages) throw new PdfError('page_count');
+    return text;
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
 export async function readPdf(bytes: Uint8Array, options: ReadPdfOptions = {}): Promise<Page[]> {
   if (bytes.length > MAX_PDF_BYTES) throw new PdfError('too_large');
   if (!isPdf(bytes)) throw new PdfError('not_pdf');

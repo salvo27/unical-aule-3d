@@ -6,8 +6,15 @@ export const BODY_CAP = 1_048_576;
 const ERROR_CAP = 4096;
 const TIMEOUT_MS = 8000;
 
-export type RpcFn = 'room_status' | 'room_lessons' | 'search_rooms' | 'search_courses' | 'course_timetable';
-const FUNCTIONS: ReadonlySet<string> = new Set<RpcFn>(['room_status', 'room_lessons', 'search_rooms', 'search_courses', 'course_timetable']);
+export type RpcFn = 'room_status' | 'room_lessons' | 'search_rooms' | 'search_courses' | 'course_timetable' | 'canteen_menu';
+const FUNCTIONS: ReadonlySet<string> = new Set<RpcFn>([
+  'room_status',
+  'room_lessons',
+  'search_rooms',
+  'search_courses',
+  'course_timetable',
+  'canteen_menu',
+]);
 
 export type UpstreamCode = 'invalid' | 'not_found' | 'upstream_error' | 'upstream_unavailable';
 type LogCode = 'network' | 'timeout' | 'redirect' | 'too_large' | 'content_type' | 'status' | 'P0001' | 'config';

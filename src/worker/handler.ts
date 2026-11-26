@@ -1,6 +1,7 @@
-// Public read API: GET /api/status, /api/rooms/:id, /api/search, /api/courses, /api/timetable, /api/cinema, /api/teatri,
-// /api/notizie. Validates, caches for 60 s, calls one Supabase RPC. /api/cinema, /api/teatri and /api/notizie read public
-// pages of the cinema and of the University instead, and keep them for one hour when the slow cache is given.
+// Public read API: GET /api/status, /api/rooms/:id, /api/search, /api/courses, /api/timetable, /api/menu, /api/cinema,
+// /api/teatri, /api/notizie. Validates, caches for 60 s, calls one Supabase RPC. /api/cinema, /api/teatri and
+// /api/notizie read public pages of the cinema and of the University instead, and keep them for one hour when the slow
+// cache is given.
 // Any other path belongs to the Pages static assets.
 import { ValidationError } from '../domain/errors.js';
 import { plannerId, isoDay, dayCount, searchText, minFreeHours, minSeats, courseKeys, type IsoDay } from '../domain/primitives.js';
@@ -90,9 +91,10 @@ function errorKind(err: unknown): string {
 }
 
 // The map never looks further than three weeks. A course timetable may start up to 60 days ahead, the most the run
-// window may be set to: past the window the days simply hold no lessons.
+// window may be set to: past the window the days simply hold no lessons. The canteen menu has the same bounds.
 const ROOM_DAYS_AHEAD = 21;
 const TIMETABLE_DAYS_AHEAD = 60;
+const MENU_DAYS_AHEAD = 60;
 
 // from: a day from 21 days back to `ahead` days ahead of today in Rome (today when absent). days: 1 to 14.
 function dayWindow(q: URLSearchParams, now: number, defaultDays: number, ahead: number): { from: IsoDay; days: number } {
@@ -151,6 +153,13 @@ function route(url: URL, now: number): Call | null {
     const { from, days } = dayWindow(q, now, 7, TIMETABLE_DAYS_AHEAD);
     const key = new URLSearchParams({ days: String(days), from, keys: keys.join(',') });
     return { fn: 'course_timetable', args: { p_keys: keys, p_from: from, p_days: days }, key: `timetable?${key}` };
+  }
+
+  // Our own data like the rest: the 60 s cache. The slow cache keeps 4 entries for the pages of other sites, and the
+  // many menu windows would push them out.
+  if (path === '/api/menu') {
+    const { from, days } = dayWindow(q, now, 7, MENU_DAYS_AHEAD);
+    return { fn: 'canteen_menu', args: { p_from: from, p_days: days }, key: `menu/${from}/${days}` };
   }
   return null;
 }

@@ -793,6 +793,116 @@ test('courses and timetable: only GET, exact paths, upstream errors mapped like 
   }
 });
 
+test('menu: an invalid window gives 400 with the field and never reaches Supabase', async () => {
+  const cases: [string, string][] = [
+    ['/api/menu?from=2027-01-16', 'day'],
+    ['/api/menu?from=2026-10-25', 'day'],
+    ['/api/menu?from=2026-02-30', 'day'],
+    ['/api/menu?from=16-11-2026', 'day'],
+    ['/api/menu?from=', 'day'],
+    ['/api/menu?days=0', 'days'],
+    ['/api/menu?days=15', 'days'],
+    ['/api/menu?days=-1', 'days'],
+    ['/api/menu?days=7.0', 'days'],
+    ['/api/menu?days=', 'days'],
+  ];
+  const s = setup();
+  for (const [path, field] of cases) {
+    const res = await s.get(path);
+    assert.equal(res.status, 400, path);
+    assert.deepEqual(await res.json(), { error: 'invalid', field }, path);
+    assertHeaders(res, false);
+  }
+  assert.equal(s.calls.length, 0);
+});
+
+test('menu: defaults and edges reach Supabase with validated values only', async () => {
+  const s = setup();
+  // 21 days back and up to 60 days ahead, as a course timetable.
+  for (const query of ['', '?from=2026-10-26&days=1', '?from=2027-01-15&days=14', '?days=14&lang=it']) {
+    const res = await s.get(`/api/menu${query}`);
+    assert.equal(res.status, 200, query);
+    assert.deepEqual(await bytesOf(res), Buffer.from(BODY));
+    assertHeaders(res, false);
+  }
+  assert.deepEqual(
+    s.calls.map((c) => [c.url, c.init.body]),
+    [
+      ['http://127.0.0.1:54321/rest/v1/rpc/canteen_menu', '{"p_from":"2026-11-16","p_days":7}'],
+      ['http://127.0.0.1:54321/rest/v1/rpc/canteen_menu', '{"p_from":"2026-10-26","p_days":1}'],
+      ['http://127.0.0.1:54321/rest/v1/rpc/canteen_menu', '{"p_from":"2027-01-15","p_days":14}'],
+      ['http://127.0.0.1:54321/rest/v1/rpc/canteen_menu', '{"p_from":"2026-11-16","p_days":14}'],
+    ],
+  );
+  for (const { init } of s.calls) {
+    assert.deepEqual(init.headers, { apikey: KEY, 'Content-Type': 'application/json', Accept: 'application/json' });
+  }
+});
+
+test('menu: one cache entry per window for 60 seconds, never in the slow cache of other sites', async () => {
+  const shared = fakeCache();
+  const s = setup({ cache: shared.cache });
+  const slow = new MemoryCache({ ttlMs: 60 * 60_000, maxEntries: 4 });
+  s.deps.slow = slow;
+  await s.get('/api/menu');
+  await s.get('/api/menu?days=7&from=2026-11-16');
+  await s.get('/api/menu?from=2026-11-16&from=2026-11-20&lang=it');
+  await Promise.all(s.pending);
+  assert.equal(s.calls.length, 1);
+  assert.deepEqual(shared.puts, ['https://127.0.0.1/__aule_cache/v1/menu/2026-11-16/7']);
+  await s.get('/api/menu?days=8');
+  await s.get('/api/menu?from=2026-11-17');
+  assert.equal(s.calls.length, 3);
+  assert.equal(slow.size, 0);
+  s.advance(59_000);
+  await s.get('/api/menu');
+  assert.equal(s.calls.length, 3);
+  s.advance(2_000);
+  await s.get('/api/menu');
+  assert.equal(s.calls.length, 4);
+  // The default day follows the clock in Rome: after midnight it is another entry.
+  s.advance(13 * 3_600_000);
+  await s.get('/api/menu');
+  assert.equal(s.calls.length, 5);
+  assert.equal(s.calls[4]!.init.body, '{"p_from":"2026-11-17","p_days":7}');
+});
+
+test('menu: only GET, exact path, upstream errors mapped like the other routes', async () => {
+  const p0001 = (message: string) => json(JSON.stringify({ code: 'P0001', details: null, hint: null, message }), 400);
+  const s = setup();
+  for (const path of ['/api/menu/', '/api/menu/2026-11-16', '/api/Menu', '/api/menus']) {
+    const res = await s.get(path);
+    assert.equal(res.status, 404, path);
+    assert.deepEqual(await res.json(), { error: 'not_found' }, path);
+  }
+  const post = await s.get('/api/menu', { method: 'POST', body: '{}' });
+  assert.equal(post.status, 405);
+  assert.equal(post.headers.get('Allow'), 'GET');
+  assert.equal(s.calls.length, 0);
+
+  // Reply, answer status and code, then the logged upstream status and code (null: nothing logged).
+  const cases: [() => Response | Promise<Response>, number, string, [number, string] | null][] = [
+    [() => p0001('invalid'), 400, 'invalid', null],
+    [() => p0001('internal'), 502, 'upstream_error', [400, 'P0001']],
+    [() => json('{}', 500), 503, 'upstream_unavailable', [500, 'status']],
+    [() => Promise.reject(new TypeError('fetch failed')), 503, 'upstream_unavailable', [0, 'network']],
+  ];
+  for (const [reply, status, code, logged] of cases) {
+    const failing = setup({ reply });
+    const res = await failing.get('/api/menu');
+    assert.equal(res.status, status, code);
+    assert.deepEqual(await res.json(), { error: code });
+    assertHeaders(res, false);
+    assert.deepEqual(
+      failing.logs,
+      logged === null ? [] : [JSON.stringify({ event: 'upstream_failed', fn: 'canteen_menu', status: logged[0], code: logged[1] })],
+    );
+    // Errors are never cached.
+    failing.state.reply = () => json(BODY);
+    assert.equal((await failing.get('/api/menu')).status, 200);
+  }
+});
+
 const CINEMA_PAGE = 'https://cosenzacinema.it/programmazione-sale-unical/';
 const CINEMA_TIMES = 'https://cosenzacinema.it/wp-admin/admin-ajax.php';
 const CINEMA_HTML = `<div class="amy-movie-item row"> <div class="amy-movie-item-poster"> <a href="https://cosenzacinema.it/movie/film-di-prova/"> <img src="https://cosenzacinema.it/wp-content/uploads/2026/11/prova.jpg"> </a> </div>
